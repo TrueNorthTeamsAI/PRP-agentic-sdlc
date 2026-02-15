@@ -193,6 +193,23 @@ bun test || npm test
 bun run build || npm run build
 ```
 
+**If plan has `## How to Execute` and `## User Journeys`:**
+
+After the above validations pass, run journey/e2e validation:
+
+1. Run setup from "How to Execute" (Start Services → Seed Data → Verify Ready)
+2. **If e2e framework configured**: Run e2e test command (from CLAUDE.md)
+3. **If no e2e framework**: Extract and run each automated journey's Validation Script
+4. Run teardown from "How to Execute"
+
+```bash
+# Example e2e validation
+{start services from How to Execute}
+{verify ready}
+{e2e run command, e.g., npx playwright test}
+{teardown}
+```
+
 ### 3.5 Track Results
 
 | Check | Result | Notes |
@@ -201,6 +218,7 @@ bun run build || npm run build
 | Lint | PASS/FAIL | {details} |
 | Tests | PASS/FAIL | {details} |
 | Build | PASS/FAIL | {details} |
+| Journeys | PASS/FAIL/N/A | {details} |
 
 ### 3.6 If Any Validation Fails
 
@@ -232,6 +250,7 @@ Append to Progress Log section using this format:
 - Lint: PASS/FAIL
 - Tests: PASS/FAIL ({X/Y passing})
 - Build: PASS/FAIL
+- Journeys: PASS/FAIL/N/A ({details})
 
 ### Learnings
 - {Pattern discovered: "this codebase uses X for Y"}
@@ -279,6 +298,7 @@ ALL of these must be true:
 - [ ] Lint passes (0 errors)
 - [ ] Tests pass
 - [ ] Build succeeds
+- [ ] Journey / e2e validation passes (if applicable)
 - [ ] All acceptance criteria met
 
 ### 4.2 If ALL Pass - Complete the Loop
@@ -307,6 +327,7 @@ ALL of these must be true:
    | Lint | PASS |
    | Tests | PASS |
    | Build | PASS |
+   | Journeys | PASS / N/A |
 
    ## Codebase Patterns Discovered
    {From state file Codebase Patterns section}
@@ -444,7 +465,7 @@ cat .claude/PRPs/ralph-archives/2024-01-12-feature-name/learnings.md
 ## Success Criteria
 
 - **PLAN_EXECUTED**: All tasks from plan completed
-- **VALIDATIONS_PASS**: All validation commands succeed
+- **VALIDATIONS_PASS**: All validation commands succeed (including journey/e2e if applicable)
 - **REPORT_GENERATED**: Implementation report created
 - **LEARNINGS_CAPTURED**: Progress log has useful insights
 - **PATTERNS_CONSOLIDATED**: Reusable patterns extracted

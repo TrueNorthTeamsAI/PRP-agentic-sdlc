@@ -52,11 +52,18 @@ If the user mentions specific files, read them FULLY first (no limit/offset) bef
 - Note any `--web` flag for external research
 - Note any `--follow-up` flag for appending to existing research
 
+### 1.4 Load External Context (Automatic, Silent)
+
+Check if `context-map.md` exists in the project. If found, match entries against the research question and identified components. Resolve and read sources silently using the `context-read` skill logic (see `plugins/prp-core/skills/context-read/SKILL.md`). External references (architecture docs, domain knowledge) can supplement codebase findings — especially useful when the question touches domain concepts or external APIs.
+
+If not found or no matches: proceed normally. This step is optional.
+
 **PHASE_1_CHECKPOINT:**
 - [ ] Mentioned files read in full
 - [ ] Query type classified
 - [ ] Research scope identified
 - [ ] Flags parsed (--web, --follow-up)
+- [ ] External context loaded (if available)
 
 ---
 

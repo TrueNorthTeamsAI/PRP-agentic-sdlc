@@ -240,9 +240,6 @@ npm-debug.log*
 
 # Testing
 coverage/
-
-# Claude
-.claude/PRPs/
 ```
 
 **Python:**
@@ -279,9 +276,6 @@ htmlcov/
 
 # mypy
 .mypy_cache/
-
-# Claude
-.claude/PRPs/
 ```
 
 **Java (Maven):**
@@ -303,9 +297,6 @@ target/
 # OS
 .DS_Store
 Thumbs.db
-
-# Claude
-.claude/PRPs/
 ```
 
 **Java (Gradle):**
@@ -328,9 +319,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
-
-# Claude
-.claude/PRPs/
 ```
 
 **Rust:**
@@ -348,9 +336,6 @@ target/
 # OS
 .DS_Store
 Thumbs.db
-
-# Claude
-.claude/PRPs/
 ```
 
 **Other / None:**
@@ -366,9 +351,6 @@ Thumbs.db
 # OS
 .DS_Store
 Thumbs.db
-
-# Claude
-.claude/PRPs/
 ```
 
 Write the appropriate `.gitignore` to `{dev-directory}/{repo-name}/.gitignore`.

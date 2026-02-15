@@ -70,6 +70,16 @@ Ask these questions (present all at once, user can answer together):
 
 ## Phase 3: GROUNDING - Market & Context Research
 
+### 3.0 Load External Context (Automatic, Silent)
+
+Before launching research agents, check if `context-map.md` exists in the project (search current dir, then walk up parent directories).
+
+**If found:** Match entries against the product/feature idea and key terms from the user's foundation answers. Resolve and read sources silently using the `context-read` skill logic (see `plugins/prp-core/skills/context-read/SKILL.md`). Include loaded content as additional input for the grounding phase — domain knowledge, architecture decisions, and reference material can inform the PRD.
+
+**If not found or no matches:** Proceed normally. This step is optional.
+
+### 3.1 Research
+
 After foundation answers, conduct research using specialized agents:
 
 **Use Task tool with `subagent_type="prp-core:web-researcher"`:**
@@ -146,6 +156,12 @@ LOCATE:
 2. Similar patterns already implemented
 3. Integration points and dependencies
 4. Relevant configuration and type definitions
+5. Testing setup:
+   - Unit test framework and patterns (jest, vitest, pytest, etc.)
+   - E2E test framework configs (playwright.config.*, cypress.config.*, etc.)
+   - E2E test directories (e2e/, tests/e2e/, cypress/e2e/)
+   - Test-related scripts in package.json / pyproject.toml
+   - Existing CLAUDE.md testing sections
 
 Return file locations, code patterns, and conventions observed.
 ```
@@ -313,6 +329,28 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 
 ---
 
+## Testing Strategy
+
+### Unit Testing
+- **Framework**: {jest | vitest | pytest | go test | cargo test | etc.}
+- **Location**: {tests/ | src/**/*.test.ts | etc.}
+- **Run**: `{test command}`
+
+### E2E Testing
+- **Framework**: {Playwright | Cypress | none | TBD}
+- **Config**: `{path to config file, or "N/A"}`
+- **Test directory**: `{e2e/ | tests/e2e/ | etc.}`
+- **Run command**: `{npx playwright test | npx cypress run | etc.}`
+- **Approach**: {Brief description of e2e testing approach}
+
+_If no e2e framework: user journey validation scripts (bash) will be used instead._
+
+### Integration Testing
+- **Approach**: {API tests, service tests, etc.}
+- **Run**: `{command}`
+
+---
+
 ## Implementation Phases
 
 <!--
@@ -374,6 +412,39 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 
 ---
 
+## Phase 7.5: PERSIST - Update CLAUDE.md with Testing Config
+
+After generating the PRD, check if the project has a `CLAUDE.md` file. If it does, and the testing strategy includes e2e framework information not already documented there, update `CLAUDE.md` with a `## Testing` section (or update the existing one).
+
+**Steps:**
+
+1. Read the project's `CLAUDE.md` (if it exists)
+2. Check if it already has `## Testing` or `## E2E Testing` section
+3. If e2e config was discovered and isn't already in CLAUDE.md, append:
+
+```markdown
+## Testing
+
+### Unit Tests
+- **Framework**: {framework}
+- **Run**: `{command}`
+
+### E2E Tests
+- **Framework**: {framework}
+- **Config**: `{config path}`
+- **Test directory**: `{directory}`
+- **Run**: `{command}`
+```
+
+4. If CLAUDE.md already has testing info, verify it's current and update if stale
+5. If no CLAUDE.md exists, skip this step — don't create one just for testing config
+
+**Why**: This ensures all future plans, agents, and Ralph loops know the project's testing setup without re-discovering it every time.
+
+**GATE**: No user interaction needed. This is automatic.
+
+---
+
 ## Phase 8: OUTPUT - Summary
 
 After generating, report:
@@ -396,6 +467,7 @@ After generating, report:
 | Problem Statement | {Validated/Assumption} |
 | User Research | {Done/Needed} |
 | Technical Feasibility | {Assessed/TBD} |
+| Testing Strategy | {Defined/TBD} |
 | Success Metrics | {Defined/Needs refinement} |
 
 ### Open Questions ({count})
@@ -462,4 +534,5 @@ This will automatically select the next pending phase and create an implementati
 - **HYPOTHESIS_CLEAR**: Testable hypothesis with measurable outcome
 - **SCOPE_BOUNDED**: Clear must-haves and explicit out-of-scope
 - **QUESTIONS_ACKNOWLEDGED**: Uncertainties are listed, not hidden
+- **TESTING_STRATEGY_DEFINED**: Unit, e2e, and integration testing approach established
 - **ACTIONABLE**: A skeptic could understand why this is worth building

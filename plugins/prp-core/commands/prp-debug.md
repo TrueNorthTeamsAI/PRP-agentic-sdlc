@@ -46,11 +46,21 @@ Find the **actual root cause** - the specific code, config, or logic that, if ch
 
 ---
 
+## Phase 1.5: CONTEXT - Load External Context (Automatic)
+
+**This phase runs silently. No user prompts.**
+
+Check if `context-map.md` exists in the project. If found, match entries against the symptom description, error type, and suspected system area. Resolve and read sources silently using the `context-read` skill logic (see `plugins/prp-core/skills/context-read/SKILL.md`). Domain knowledge and architecture docs can help form better hypotheses about the root cause.
+
+If not found or no matches: proceed normally. This phase is optional.
+
+---
+
 ## Phase 2: HYPOTHESIZE - Form Theories
 
 ### 2.1 Generate Hypotheses
 
-Based on the symptom, generate 2-4 hypotheses. For each:
+Based on the symptom (and any external context loaded in Phase 1.5), generate 2-4 hypotheses. For each:
 
 | Hypothesis | What must be true | Evidence needed | Likelihood |
 |------------|-------------------|-----------------|------------|

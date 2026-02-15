@@ -110,6 +110,16 @@ Each assessment requires a **one-sentence reasoning** explaining WHY you chose t
 
 ---
 
+## Phase 1.5: CONTEXT - Load External Context (Automatic)
+
+**This phase runs silently. No user prompts.**
+
+Check if `context-map.md` exists in the project. If found, match entries against the issue title, description, and classified type. Resolve and read sources silently using the `context-read` skill logic (see `plugins/prp-core/skills/context-read/SKILL.md`). Domain knowledge, architecture docs, and reference material can help inform root cause analysis and solution design.
+
+If not found or no matches: proceed normally. This phase is optional.
+
+---
+
 ## Phase 2: EXPLORE - Codebase Intelligence
 
 **CRITICAL: Launch two specialized agents in parallel using multiple Task tool calls in a single message.**

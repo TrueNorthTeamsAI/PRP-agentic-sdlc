@@ -117,11 +117,18 @@ If `ORCHESTRATION` is set, adjust:
 - Specific expertise requirements
 - Any constraints on approach
 
+### 2.4 Load External Context (Automatic, Silent)
+
+Check if `context-map.md` exists in the project. If found, match entries against the research question and identified domains. Resolve and read sources silently using the `context-read` skill logic (see `plugins/prp-core/skills/context-read/SKILL.md`). Loaded context can inform domain classification, help identify relevant sub-questions, and provide input material for researchers.
+
+If not found or no matches: proceed normally. This step is optional.
+
 **PHASE_2_CHECKPOINT:**
 - [ ] Primary domain identified with rationale
 - [ ] Supporting domains listed (if MIXED)
 - [ ] Complexity assessed with team size determined
 - [ ] Orchestration guidance applied (if provided)
+- [ ] External context loaded (if available)
 
 ---
 
