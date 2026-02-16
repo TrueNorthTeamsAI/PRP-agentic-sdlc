@@ -70,6 +70,19 @@ Locate and understand:
 - **How to Execute** - Start/seed/ready/teardown commands (if present)
 - **E2E Tests to Write** - E2E test files to generate (if present)
 - **Acceptance Criteria** - Definition of done
+- **Plane Tracking** - Project identifier, module ID, plan work item ID (if present)
+
+### 1.3 Plane Tracking — Create Work Item (silent)
+
+**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+If the plan has a `## Plane Tracking` section with a valid project identifier (not "N/A" or "Skipped"):
+
+1. Call plane-track: action=`create`, type=`Implement`, title=`{Feature Name}`, project_identifier=`{from plan}`, module_id=`{from plan}`, description=`Implementing plan: {plan file path}`, priority=`medium`
+2. Store the returned `work_item_id` for status update at completion
+3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
+
+If Plane MCP is unavailable or no tracking metadata, skip silently.
 
 ### 1.3 Validate Plan Exists
 
@@ -488,7 +501,14 @@ Step-by-step instructions to manually run and verify what was implemented.
    - Change Status from `in-progress` to `complete`
 4. Save the PRD
 
-### 5.4 Archive Plan
+### 5.4 Plane Tracking — Update Status (silent)
+
+If an Implement work item was created in Phase 1.3:
+
+1. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
+2. If Plane MCP is unavailable, skip silently
+
+### 5.5 Archive Plan
 
 ```bash
 mkdir -p .claude/PRPs/plans/completed
@@ -613,3 +633,4 @@ To continue: `/prp-plan {prd-path}`
 - **JOURNEYS_VALIDATED**: E2E tests or validation scripts pass (if applicable)
 - **REPORT_CREATED**: Implementation report exists
 - **PLAN_ARCHIVED**: Original plan moved to completed
+- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)

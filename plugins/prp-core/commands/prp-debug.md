@@ -39,10 +39,23 @@ Find the **actual root cause** - the specific code, config, or logic that, if ch
 
 **Restate the symptom in one sentence. What is actually failing?**
 
+### 1.4 Plane Tracking — Create Work Item (silent)
+
+**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+Resolve Plane project identifier: check CLAUDE.md for `## Plane Integration` → `Default Project`. If found:
+
+1. Call plane-track: action=`create`, type=`Debug`, title=`{restated symptom}`, project_identifier=`{from CLAUDE.md}`, description=`Root cause analysis: {input summary}`
+2. Store the returned `work_item_id` for status update at completion
+3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
+
+If no Plane config or Plane MCP unavailable, skip silently.
+
 **PHASE_1_CHECKPOINT:**
 - [ ] Input type classified
 - [ ] Mode determined (quick/deep)
 - [ ] Symptom restated clearly
+- [ ] Plane work item created (or skipped)
 
 ---
 
@@ -332,3 +345,6 @@ WHY: {First level cause}
 - **EVIDENCE_CHAIN_COMPLETE**: Every step has proof
 - **FIX_ACTIONABLE**: Someone could implement from the report
 - **VERIFICATION_CLEAR**: How to confirm fix works
+- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)
+
+**Plane Tracking — Update Status (silent):** Before reporting to user, if a Debug work item was created in Phase 1.4, call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`. If Plane MCP is unavailable, skip silently.

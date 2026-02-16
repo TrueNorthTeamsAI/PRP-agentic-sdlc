@@ -68,6 +68,12 @@ Discover the actual structure before proceeding.
    PRD CONTEXT: {problem statement, user, hypothesis from PRD}
    ```
 
+5. **Extract Plane Tracking** (if present):
+   - Parse the `## Plane Tracking` section from the PRD
+   - Extract: `project_identifier`, `module_name`, `module_id`
+   - If the section says "Skipped" or is missing, set `PLANE_TRACKING: none`
+   - Store these values for use in Phase 6
+
 5. **Report selection to user:**
    ```
    PRD: {prd file path}
@@ -86,6 +92,7 @@ Discover the actual structure before proceeding.
 **PHASE_0_CHECKPOINT:**
 - [ ] Input type determined
 - [ ] If PRD: next phase selected and dependencies verified
+- [ ] If PRD: Plane Tracking metadata extracted (or confirmed absent)
 - [ ] Feature description ready for Phase 1
 
 ---
@@ -823,6 +830,23 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
 {Additional context, design decisions, trade-offs, future considerations}
 
+---
+
+## Plane Tracking
+
+<!--
+  Inherited from PRD (if applicable). Updated by this plan command.
+  Downstream commands (prp-implement, prp-ralph) read this section.
+-->
+
+| Field | Value |
+|-------|-------|
+| Project | {project_identifier from PRD, or "N/A"} |
+| Module | {module_name from PRD, or "N/A"} |
+| Module ID | {module_id from PRD, or "N/A"} |
+| Plan Work Item | {work_item_identifier or "N/A"} |
+| Plan Work Item ID | {work_item_id or "N/A"} |
+
 ````
 
 </process>
@@ -837,6 +861,16 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
    - Add the plan file path to the PRP Plan column
 
 2. **Edit the PRD file** with these changes
+
+**Plane Tracking** (silent, using `plane-track` skill logic — see `plugins/prp-core/skills/plane-track/SKILL.md`):
+
+If Plane Tracking metadata was extracted from the PRD in Phase 0 (project_identifier is not "N/A" or "Skipped"):
+
+1. Call plane-track: action=`create`, type=`Plan`, title=`{Feature Name} - Phase {N}`, project_identifier=`{from PRD}`, module_id=`{from PRD}`, description=`{Summary from plan}`
+2. Update the plan file's `## Plane Tracking` table with the returned work_item_id and identifier
+3. If Plane MCP is unavailable, leave Plane Tracking fields as "N/A" and proceed
+
+If no Plane Tracking metadata from PRD, skip silently.
 
 **REPORT_TO_USER** (display after creating plan):
 
@@ -941,4 +975,5 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 **UX_DOCUMENTED**: Before/After transformation is visually clear with data flows
 **JOURNEYS_DEFINED**: User journey files created for new user-facing flows with concrete steps
 **ONE_PASS_TARGET**: Confidence score 8+ indicates high likelihood of first-attempt success
+**PLANE_TRACKED**: Plan work item created in Plane with module association (or explicitly skipped/unavailable)
 </success_criteria>

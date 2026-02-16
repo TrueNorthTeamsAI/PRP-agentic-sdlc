@@ -58,12 +58,25 @@ Check if `context-map.md` exists in the project. If found, match entries against
 
 If not found or no matches: proceed normally. This step is optional.
 
+### 1.5 Plane Tracking — Create Work Item (silent)
+
+**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+Resolve Plane project identifier: check CLAUDE.md for `## Plane Integration` → `Default Project`. If found:
+
+1. Call plane-track: action=`create`, type=`Research`, title=`{research question summary}`, project_identifier=`{from CLAUDE.md}`, description=`Codebase research: {question}`
+2. Store the returned `work_item_id` for status update at completion
+3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
+
+If no Plane config or Plane MCP unavailable, skip silently.
+
 **PHASE_1_CHECKPOINT:**
 - [ ] Mentioned files read in full
 - [ ] Query type classified
 - [ ] Research scope identified
 - [ ] Flags parsed (--web, --follow-up)
 - [ ] External context loaded (if available)
+- [ ] Plane work item created (or skipped)
 
 ---
 
@@ -389,3 +402,6 @@ To include external docs: `/prp-codebase-question --web {topic}`
 - **DOCUMENT_CREATED**: Research file saved at `.claude/PRPs/research/`
 - **NO_OPINIONS**: Document describes what exists, not what should change
 - **PERMALINKS_ADDED**: GitHub links included when possible
+- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)
+
+**Plane Tracking — Update Status (silent):** Before reporting to user, if a Research work item was created in Phase 1.5, call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`. If Plane MCP is unavailable, skip silently.

@@ -98,6 +98,18 @@ Each assessment requires a **one-sentence reasoning** explaining WHY you chose t
 | MEDIUM     | Likely root cause, some assumptions, partially understood    |
 | LOW        | Uncertain root cause, limited evidence, many unknowns        |
 
+### 1.5 Plane Tracking — Create Work Item (silent)
+
+**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+Resolve Plane project identifier: check CLAUDE.md for `## Plane Integration` → `Default Project`. If found:
+
+1. Call plane-track: action=`create`, type=`Investigate`, title=`{issue title or description summary}`, project_identifier=`{from CLAUDE.md}`, description=`Investigating: {issue URL or description}`
+2. Store the returned `work_item_id` for status update at completion
+3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
+
+If no Plane config or Plane MCP unavailable, skip silently.
+
 **PHASE_1_CHECKPOINT:**
 
 - [ ] Input type identified (GH issue or free-form)
@@ -107,6 +119,7 @@ Each assessment requires a **one-sentence reasoning** explaining WHY you chose t
 - [ ] Complexity assessed with reasoning (after Phase 2)
 - [ ] Confidence assessed with reasoning (after Phase 3)
 - [ ] If GH issue: confirmed it's open and not already has PR
+- [ ] Plane work item created (or skipped)
 
 ---
 
@@ -554,6 +567,14 @@ EOF
 
 ---
 
+## Phase 6.5: TRACK - Update Plane Work Item (silent)
+
+If an Investigate work item was created in Phase 1.5:
+- Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
+- If Plane MCP is unavailable, skip silently
+
+---
+
 ## Phase 7: REPORT - Output to User
 
 ```markdown
@@ -632,3 +653,4 @@ Run `/prp-issue-fix {number}` to execute the plan.
 - **IMPLEMENTABLE**: Another agent can execute without questions
 - **GITHUB_POSTED**: Comment visible on issue (if GH issue)
 - **COMMITTED**: Artifact saved in git
+- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)

@@ -1,12 +1,12 @@
 ---
-name: scaffold-repo
-description: Create a new GitHub repo, clone it, and scaffold with CLAUDE.md template, .gitignore, and README. Pass the repo name as an argument. Reads GitHub owner and visibility defaults from parent CLAUDE.md.
+name: init-project
+description: Create a new GitHub repo, clone it, and scaffold with CLAUDE.md template, .gitignore, README, context-map.md, and Plane MCP integration. Pass the repo name as an argument. Reads defaults from parent CLAUDE.md.
 argument-hint: <repo-name>
 ---
 
-# Scaffold New Repository
+# Initialize New Project
 
-Create a new GitHub repository with proper PRP framework scaffolding. This skill handles repo creation, cloning, and initial file setup so every project starts with the right structure.
+Create a new GitHub repository with proper PRP framework scaffolding. This skill handles repo creation, cloning, and initial file setup so every project starts with the right structure — including context tracking and Plane work item integration.
 
 **Input**: `$ARGUMENTS`
 
@@ -54,20 +54,15 @@ Run these checks and fail fast with helpful messages:
 
 ### 2.1 Read Repository Defaults
 
-Search for the nearest `CLAUDE.md` by walking up the directory tree from the current working directory. Look for a section called `## Repository Defaults` containing:
+Search for the nearest `scaffold-repo.json` by walking up the directory tree from the current working directory. Use the first one found. Parse its values verbatim — do not merge with other config files further up the tree.
+
+If no `scaffold-repo.json` is found, fall back to searching for the nearest `CLAUDE.md` and look for a section called `## Repository Defaults` containing:
 
 - **GitHub Owner** (e.g., `TrueNorthTeamsAI`)
 - **Default Visibility** (e.g., `private`)
 - **Dev Directory** (e.g., `D:\Source\TrueNorthTeams`)
 
-Parse these values from the markdown. The format is:
-```
-- **GitHub Owner**: {value}
-- **Default Visibility**: {value}
-- **Dev Directory**: {value}
-```
-
-If the section is not found or any value is missing, ask the user for the missing values:
+If neither is found or any value is missing, ask the user for the missing values:
 - "What GitHub owner (user or org) should own this repo?"
 - "Should the repo be public or private?" (default: private)
 - "What directory should the repo be cloned into?" (default: current working directory's parent)
@@ -95,18 +90,39 @@ Record the user's choice and map it to the template filename.
 Ask the user:
 > "Give a one-line description of this project (used in GitHub repo description and README):"
 
-### 2.4 Confirm Settings
+### 2.4 Plane Integration
+
+Ask the user:
+> **Plane Integration** (for work item tracking):
+>
+> 1. **Plane project identifier** — Which Plane project should track work for this repo? (e.g., `PROJ`)
+>    Enter the identifier, or "skip" to set up later.
+>
+> 2. **Plane API key** — If you have a Plane API key for this workspace, provide it now.
+>    Or "skip" to configure `.mcp.json` manually later.
+>
+> 3. **Plane workspace slug** — Your Plane workspace slug (e.g., `LOCALDEV`).
+>    Or "skip" to configure later.
+>
+> 4. **Plane base URL** — Your Plane instance URL (e.g., `http://localhost:8200` or `https://app.plane.so`).
+>    Or "skip" to configure later.
+
+If the user skips all Plane questions, `.mcp.json` will still be created but with placeholder values that need to be filled in.
+
+### 2.5 Confirm Settings
 
 Present a summary and ask for confirmation before proceeding:
 
 ```
-Repository Settings:
-  Name:        {repo-name}
-  Owner:       {owner}
-  Visibility:  {visibility}
-  Tech Stack:  {stack-name}
-  Directory:   {dev-directory}\{repo-name}
-  Description: {description}
+Project Settings:
+  Name:           {repo-name}
+  Owner:          {owner}
+  Visibility:     {visibility}
+  Tech Stack:     {stack-name}
+  Directory:      {dev-directory}\{repo-name}
+  Description:    {description}
+  Plane Project:  {identifier or "Not configured"}
+  Plane Instance: {base-url or "Not configured"}
 
 Proceed? (yes/no)
 ```
@@ -119,6 +135,7 @@ Wait for user confirmation. If "no", ask what to change.
 - [ ] Dev directory determined
 - [ ] Tech stack selected
 - [ ] Description provided
+- [ ] Plane integration settings collected (or explicitly skipped)
 - [ ] User confirmed settings
 
 ---
@@ -179,6 +196,17 @@ Customize the template:
   ```
 - Keep all remaining template content intact — it contains valuable framework-specific conventions and rules
 
+**After the template content**, append the Plane Integration section:
+
+```markdown
+
+## Plane Integration
+
+| Setting | Value |
+|---------|-------|
+| Default Project | {plane-project-identifier or "TBD"} |
+```
+
 Write the customized content to `{dev-directory}/{repo-name}/CLAUDE.md`.
 
 **If "Other / None" was selected (option 9):**
@@ -204,6 +232,12 @@ Write a minimal CLAUDE.md:
 ## Project-Specific Conventions
 
 <!-- Naming patterns, gotchas, unique patterns -->
+
+## Plane Integration
+
+| Setting | Value |
+|---------|-------|
+| Default Project | {plane-project-identifier or "TBD"} |
 ```
 
 ### 4.3 Generate .gitignore
@@ -374,11 +408,62 @@ See [CLAUDE.md](./CLAUDE.md) for development guidance, conventions, and availabl
 
 Write to `{dev-directory}/{repo-name}/README.md`.
 
+### 4.5 Scaffold context-map.md
+
+Copy the context-map template from:
+```
+${CLAUDE_PLUGIN_ROOT}/templates/context-map.md
+```
+
+Write to `{dev-directory}/{repo-name}/context-map.md`.
+
+This gives the project a ready-to-use context source registry. The user can add entries later with `/prp-context-add`.
+
+### 4.6 Scaffold .mcp.json (Plane MCP)
+
+Write `.mcp.json` to `{dev-directory}/{repo-name}/.mcp.json`:
+
+**If the user provided Plane settings:**
+```json
+{
+  "mcpServers": {
+    "plane": {
+      "command": "uvx",
+      "args": ["--with", "pywin32", "plane-mcp-server", "stdio"],
+      "env": {
+        "PLANE_API_KEY": "{plane-api-key}",
+        "PLANE_BASE_URL": "{plane-base-url}",
+        "PLANE_WORKSPACE_SLUG": "{plane-workspace-slug}"
+      }
+    }
+  }
+}
+```
+
+**If the user skipped Plane setup:**
+```json
+{
+  "mcpServers": {
+    "plane": {
+      "command": "uvx",
+      "args": ["--with", "pywin32", "plane-mcp-server", "stdio"],
+      "env": {
+        "PLANE_API_KEY": "REPLACE_WITH_YOUR_API_KEY",
+        "PLANE_BASE_URL": "REPLACE_WITH_YOUR_PLANE_URL",
+        "PLANE_WORKSPACE_SLUG": "REPLACE_WITH_YOUR_WORKSPACE_SLUG"
+      }
+    }
+  }
+}
+```
+
 **PHASE_4_CHECKPOINT**:
 - [ ] Repository cloned to dev directory
-- [ ] CLAUDE.md written (from template or minimal)
+- [ ] CLAUDE.md written (from template or minimal) with Plane Integration section
 - [ ] .gitignore written (stack-appropriate)
 - [ ] README.md written
+- [ ] context-map.md written (from template)
+- [ ] .mcp.json written (with Plane MCP config)
 
 ---
 
@@ -397,8 +482,8 @@ If empty (fresh repo with no commits), default to `main`.
 
 ```bash
 cd "{dev-directory}/{repo-name}"
-git add CLAUDE.md .gitignore README.md
-git commit -m "chore: initial repository scaffold with CLAUDE.md template"
+git add CLAUDE.md .gitignore README.md context-map.md .mcp.json
+git commit -m "chore: initialize project with CLAUDE.md, context-map, and Plane integration"
 git push -u origin main
 ```
 
@@ -419,18 +504,28 @@ git push --set-upstream origin main
 Display the completion summary:
 
 ```
-Repository scaffolded successfully!
+Project initialized successfully!
 
-  Location:  {dev-directory}\{repo-name}
-  GitHub:    https://github.com/{owner}/{repo-name}
-  Stack:     {stack-name}
-  Files:     CLAUDE.md, .gitignore, README.md
+  Location:      {dev-directory}\{repo-name}
+  GitHub:        https://github.com/{owner}/{repo-name}
+  Stack:         {stack-name}
+  Plane Project: {identifier or "Not configured — edit .mcp.json and CLAUDE.md"}
+
+  Files created:
+    CLAUDE.md       — Project conventions and AI guidance
+    .gitignore      — Stack-appropriate ignore rules
+    README.md       — Project overview
+    context-map.md  — External context source registry
+    .mcp.json       — MCP server configuration (Plane)
 
 Next steps:
   1. Open the repo: cd "{dev-directory}\{repo-name}"
   2. Review and customize CLAUDE.md for your project
   3. Initialize your project (npm init, uv init, cargo init, etc.)
-  4. Start building: /prp-prd "your feature idea"
+  {If Plane was skipped:}
+  4. Configure Plane: edit .mcp.json with your Plane API key and workspace
+  5. Add context sources: /prp-context-add <path-or-url>
+  6. Start building: /prp-prd "your feature idea"
 ```
 
 ---
@@ -440,9 +535,9 @@ Next steps:
 Now run through all phases:
 
 1. Validate the repo name from `$ARGUMENTS` and check prerequisites
-2. Find and parse Repository Defaults from the nearest CLAUDE.md
-3. Ask for tech stack, description, and confirm
+2. Find and parse defaults from scaffold-repo.json or CLAUDE.md
+3. Ask for tech stack, description, Plane integration settings, and confirm
 4. Create the GitHub repo
-5. Clone, scaffold CLAUDE.md from template, generate .gitignore and README
+5. Clone, scaffold CLAUDE.md (with Plane section), generate .gitignore, README, context-map.md, and .mcp.json
 6. Commit and push
 7. Report success
