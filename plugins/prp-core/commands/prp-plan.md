@@ -61,12 +61,16 @@ Discover the actual structure before proceeding.
 
 4. **Extract phase context:**
    ```
+   SOURCE_PRD: {path to the PRD file}
+   GIT_STRATEGY: {from PRD's "Git Strategy" field, default "main-only" if not specified}
    PHASE: {phase number and name}
    GOAL: {from phase details}
    SCOPE: {from phase details}
    SUCCESS SIGNAL: {from phase details}
    PRD CONTEXT: {problem statement, user, hypothesis from PRD}
    ```
+
+   **IMPORTANT**: Carry `SOURCE_PRD` and `PHASE` into the plan's Metadata table (Phase 6) as `Source PRD` and `PRD Phase` fields.
 
 5. **Extract Plane Tracking** (if present):
    - Parse the `## Plane Tracking` section from the PRD
@@ -454,6 +458,8 @@ So that {benefit}
 | Systems Affected | {comma-separated list}                            |
 | Dependencies     | {external libs/services with versions}            |
 | Estimated Tasks  | {count}                                           |
+| Source PRD       | {prd-file-path or N/A}                            |
+| PRD Phase        | {phase number and name or N/A}                    |
 
 ---
 
@@ -871,6 +877,29 @@ If Plane Tracking metadata was extracted from the PRD in Phase 0 (project_identi
 3. If Plane MCP is unavailable, leave Plane Tracking fields as "N/A" and proceed
 
 If no Plane Tracking metadata from PRD, skip silently.
+
+**Git Operations** (after writing the plan file, updating the PRD, and Plane tracking):
+
+Read `GIT_STRATEGY` from Phase 0 context (default `main-only` if no PRD or field missing). If the plan was not generated from a PRD, ask the user which strategy to use.
+
+- **`none`**: Skip all git operations.
+- **`main-only`**: Commit on current branch:
+  ```bash
+  git add .claude/PRPs/plans/{feature-name}.plan.md {prd-file-path if updated}
+  git commit -m "docs: add implementation plan for {feature-name}"
+  ```
+- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit:
+  ```bash
+  git checkout feat/{prd-kebab-name}  # if not already on it
+  git add .claude/PRPs/plans/{feature-name}.plan.md {prd-file-path if updated}
+  git commit -m "docs: add implementation plan for {feature-name}"
+  ```
+- **`branch-per-phase`**: Create a phase branch and commit:
+  ```bash
+  git checkout -b feat/{prd-kebab-name}/phase-{N}-{phase-kebab}
+  git add .claude/PRPs/plans/{feature-name}.plan.md {prd-file-path if updated}
+  git commit -m "docs: add implementation plan for {feature-name}"
+  ```
 
 **REPORT_TO_USER** (display after creating plan):
 

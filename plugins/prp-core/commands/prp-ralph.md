@@ -392,20 +392,60 @@ ALL of these must be true:
    - {Pattern that should be permanent}
    ```
 
-4. **Archive Plan to Completed**
+4. **Update Source PRD (if applicable)**
+
+   Check if the plan was generated from a PRD (try each method in order):
+
+   1. **Metadata table**: Look for `Source PRD` row in the plan's `## Metadata` table
+   2. **Inline reference**: Search the plan file for `Source PRD:` text anywhere
+   3. **PRD directory scan**: If neither found, scan `.claude/PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
+
+   If PRD source found by any method:
+   1. Read the PRD file
+   2. Find the matching phase row in the Implementation Phases table (match by plan path, phase name, or feature name)
+   3. Update the phase: Change Status from `in-progress` to `complete`
+   4. Save the PRD
+
+   If no PRD source found after all methods: Log a warning to the user: "No source PRD found — skipping PRD status update. To link manually, add `| Source PRD | path/to/file.prd.md |` to the plan's Metadata table."
+
+5. **Archive Plan to Completed**
 
    ```bash
    mkdir -p .claude/PRPs/plans/completed
    mv {plan_path} .claude/PRPs/plans/completed/
    ```
 
-5. **Clean Up State**
+6. **Git Operations**
+
+   **Determine git strategy**: If a source PRD was found in step 4, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if no PRD or field is missing.
+
+   - **`none`**: Skip all git operations. Do not stage or commit.
+   - **`main-only`**: Commit on current branch:
+     ```bash
+     git add -A
+     git commit -m "feat: implement {feature-name}"
+     ```
+   - **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit:
+     ```bash
+     git checkout feat/{prd-kebab-name}  # if not already on it
+     git add -A
+     git commit -m "feat: implement {feature-name}"
+     ```
+   - **`branch-per-phase`**: Should already be on the phase branch (created by prp-plan). Verify, then commit:
+     ```bash
+     git add -A
+     git commit -m "feat: implement {feature-name}"
+     ```
+
+   Use the conventional commit type that best matches the work (feat, fix, refactor, etc.).
+
+7. **Clean Up State**
 
    ```bash
    rm .claude/prp-ralph.state.md
    ```
 
-6. **Output Completion Promise**
+8. **Output Completion Promise**
 
    ```
    <promise>COMPLETE</promise>

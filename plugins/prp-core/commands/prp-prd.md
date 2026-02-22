@@ -225,6 +225,12 @@ Ask final clarifying questions:
 > 4. **Out of Scope**: What are you explicitly NOT building (even if users ask)?
 >
 > 5. **Open Questions**: What uncertainties could change the approach?
+>
+> 6. **Git Strategy**: How should we handle branching for this project?
+>    - `none` — No git operations (you manage git manually)
+>    - `main-only` — All work on current branch, auto-commit after each step
+>    - `branch-per-prd` — One feature branch for the whole PRD, all phases commit there
+>    - `branch-per-phase` — Separate branch per implementation phase
 
 **GATE**: Wait for user responses before generating.
 
@@ -324,6 +330,8 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 **Architecture Notes**
 - {Key technical decision and why}
 - {Dependency or integration point}
+
+**Git Strategy**: {none | main-only | branch-per-prd | branch-per-phase}
 
 **Technical Risks**
 
@@ -507,6 +515,32 @@ After generating the PRD, check if the project has a `CLAUDE.md` file. If it doe
 5. If no CLAUDE.md exists, skip this step — don't create one just for testing config
 
 **Why**: This ensures all future plans, agents, and Ralph loops know the project's testing setup without re-discovering it every time.
+
+**GATE**: No user interaction needed. This is automatic.
+
+---
+
+## Phase 7.75: GIT - Apply Git Strategy
+
+After generating the PRD file (and Plane tracking / CLAUDE.md updates), apply the git strategy:
+
+- **`none`**: No git operations.
+- **`main-only`**: Commit the PRD file on the current branch:
+  ```bash
+  git add .claude/PRPs/prds/{name}.prd.md
+  git commit -m "docs: add PRD for {feature-name}"
+  ```
+- **`branch-per-prd`**: Create a feature branch and commit:
+  ```bash
+  git checkout -b feat/{prd-kebab-name}
+  git add .claude/PRPs/prds/{name}.prd.md
+  git commit -m "docs: add PRD for {feature-name}"
+  ```
+- **`branch-per-phase`**: Commit on current branch (phase branches created later by prp-plan):
+  ```bash
+  git add .claude/PRPs/prds/{name}.prd.md
+  git commit -m "docs: add PRD for {feature-name}"
+  ```
 
 **GATE**: No user interaction needed. This is automatic.
 

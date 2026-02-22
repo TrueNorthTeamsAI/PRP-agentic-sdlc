@@ -489,17 +489,21 @@ Step-by-step instructions to manually run and verify what was implemented.
 
 ### 5.3 Update Source PRD (if applicable)
 
-**Check if plan was generated from a PRD:**
-- Look in the plan file for `Source PRD:` reference
-- Or check if plan filename matches a phase pattern
+**Check if plan was generated from a PRD (try each method in order):**
 
-**If PRD source exists:**
+1. **Metadata table**: Look for `Source PRD` row in the plan's `## Metadata` table
+2. **Inline reference**: Search the plan file for `Source PRD:` text anywhere
+3. **PRD directory scan**: If neither found, scan `.claude/PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
+
+**If PRD source found by any method:**
 
 1. Read the PRD file
-2. Find the phase row in the Implementation Phases table
+2. Find the matching phase row in the Implementation Phases table (match by plan path, phase name, or feature name)
 3. Update the phase:
    - Change Status from `in-progress` to `complete`
 4. Save the PRD
+
+**If no PRD source found after all methods**: Log a warning to the user: "No source PRD found — skipping PRD status update. To link manually, add `| Source PRD | path/to/file.prd.md |` to the plan's Metadata table."
 
 ### 5.4 Plane Tracking — Update Status (silent)
 
@@ -515,11 +519,36 @@ mkdir -p .claude/PRPs/plans/completed
 mv $ARGUMENTS .claude/PRPs/plans/completed/
 ```
 
+### 5.6 Git Operations
+
+**Determine git strategy**: If a source PRD was found in step 5.3, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if no PRD or field is missing. If no PRD exists, ask the user which strategy to use.
+
+- **`none`**: Skip all git operations. Do not stage or commit.
+- **`main-only`**: Commit on current branch:
+  ```bash
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  ```
+- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit:
+  ```bash
+  git checkout feat/{prd-kebab-name}  # if not already on it
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  ```
+- **`branch-per-phase`**: Should already be on the phase branch (created by prp-plan). Verify, then commit:
+  ```bash
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  ```
+
+Use the conventional commit type that best matches the work (feat, fix, refactor, etc.).
+
 **PHASE_5_CHECKPOINT:**
 
 - [ ] Report created at `.claude/PRPs/reports/`
 - [ ] PRD updated (if applicable) - phase marked complete
 - [ ] Plan moved to completed folder
+- [ ] Git operations executed per strategy (or skipped if `none`)
 
 ---
 
