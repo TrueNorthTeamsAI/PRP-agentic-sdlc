@@ -63,10 +63,6 @@ Ask these questions (present all at once, user can answer together):
 > 4. **Why now?** What changed that makes this worth building?
 >
 > 5. **How** will you know if you solved it? What would success look like?
->
-> 6. **Tracking**: Which Plane project and module should track this work?
->    - Plane project identifier (e.g., `PROJ`) — or "skip" to skip Plane tracking
->    - Existing module name, or a new module name to create?
 
 **GATE**: Wait for user responses before proceeding.
 
@@ -231,6 +227,10 @@ Ask final clarifying questions:
 >    - `main-only` — All work on current branch, auto-commit after each step
 >    - `branch-per-prd` — One feature branch for the whole PRD, all phases commit there
 >    - `branch-per-phase` — Separate branch per implementation phase
+>
+> 7. **Plane Strategy**: Should we track work items in Plane?
+>    - `none` — No Plane tracking
+>    - `integrated` — Track in Plane (provide project identifier and module name)
 
 **GATE**: Wait for user responses before generating.
 
@@ -332,6 +332,8 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 - {Dependency or integration point}
 
 **Git Strategy**: {none | main-only | branch-per-prd | branch-per-phase}
+
+**Plane Strategy**: {none | integrated}
 
 **Technical Risks**
 
@@ -446,11 +448,11 @@ _If no e2e framework: user journey validation scripts (bash) will be used instea
 
 **This phase runs silently after generating the PRD. Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
 
-**Skip this phase if the user answered "skip" to the Plane tracking question in Phase 2.**
+**Skip this phase if the Plane Strategy is `none`.**
 
 ### 7.25.1 Resolve or Create Module
 
-If the user provided a Plane project identifier and module name:
+If the user chose `integrated` for Plane Strategy and provided a project identifier and module name:
 
 1. Call Plane MCP `list_projects` to find the project by identifier. Extract `project_id`.
 2. Call Plane MCP `list_modules` for that project. Search for matching module name.

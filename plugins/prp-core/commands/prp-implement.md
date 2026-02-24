@@ -76,13 +76,13 @@ Locate and understand:
 
 **Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
 
-If the plan has a `## Plane Tracking` section with a valid project identifier (not "N/A" or "Skipped"):
+Read `Plane Strategy` from the plan's `## Metadata` table. If `integrated`:
 
 1. Call plane-track: action=`create`, type=`Implement`, title=`{Feature Name}`, project_identifier=`{from plan}`, module_id=`{from plan}`, description=`Implementing plan: {plan file path}`, priority=`medium`
 2. Store the returned `work_item_id` for status update at completion
 3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
 
-If Plane MCP is unavailable or no tracking metadata, skip silently.
+If `Plane Strategy` is `none` or missing, skip all Plane operations silently. If Plane MCP is unavailable, skip silently.
 
 ### 1.3 Validate Plan Exists
 
@@ -507,7 +507,7 @@ Step-by-step instructions to manually run and verify what was implemented.
 
 ### 5.4 Plane Tracking — Update Status (silent)
 
-If an Implement work item was created in Phase 1.3:
+If `Plane Strategy` is `integrated` and an Implement work item was created in Phase 1.3:
 
 1. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
 2. If Plane MCP is unavailable, skip silently

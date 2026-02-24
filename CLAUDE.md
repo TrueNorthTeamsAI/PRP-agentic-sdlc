@@ -4,20 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Nature
 
-This is a **PRP (Product Requirement Prompt) Framework** repository, not a traditional software project. The core concept: **"PRP = PRD + curated codebase intelligence + agent/runbook"** - designed to enable AI agents to ship production-ready code on the first pass.
+This is a **PRP (Product Requirement Prompt) Framework** repository, not a traditional software project. The core concept: **"PRP = PRD + curated codebase intelligence + agent/runbook"** — designed to enable AI agents to ship production-ready code on the first pass.
 
-## Core Architecture
+## Architecture
 
-### Command-Driven System
+### Plugin-Based System
 
-- **pre-configured Claude Code commands** in `.claude/commands/`
-- Commands organized by function:
-  - `prp-core/` - Core PRP workflow (creation and execution)
-  - `prp-commands/` - Legacy PRP workflows (story, base, planning variants)
-  - `development/` - Core development utilities (prime-core, onboarding, debug)
-  - `code-quality/` - Review and refactoring commands
-  - `rapid-development/experimental/` - Parallel PRP creation and hackathon tools
-  - `git-operations/` - Conflict resolution and smart git operations
+All commands, agents, skills, and hooks live in `plugins/prp-core/`. This directory is a Claude Code plugin that gets installed into target projects. **Do not create `.claude/commands/`, `.claude/agents/`, `.claude/hooks/`, or `.claude/skills/` directories** — the plugin provides everything.
+
+```
+plugins/prp-core/
+  .claude-plugin/plugin.json  # Plugin manifest
+  commands/                   # All PRP commands (prp-plan, prp-implement, etc.)
+  agents/                     # Specialized agents (codebase-explorer, code-reviewer, etc.)
+  skills/                     # Skills (build-with-agent-team, plane-track, etc.)
+  hooks/                      # Ralph/research stop hooks
+  templates/                  # PRP and user journey templates
+```
+
+The `.claude/` directory in this repo is reserved for:
+- `.claude/PRPs/` — Artifact storage (plans, PRDs, reports, investigations)
+- `.claude/settings.local.json` — Tool permissions
 
 ### Template-Based Methodology
 
@@ -28,129 +35,116 @@ This is a **PRP (Product Requirement Prompt) Framework** repository, not a tradi
 ### AI Documentation Curation
 
 - `PRPs/ai_docs/` contains curated Claude Code documentation for context injection
-- `claude_md_files/` provides framework-specific CLAUDE.md examples
+- `claude_md_files/` provides framework-specific CLAUDE.md examples for target projects
 
-## Development Commands
+## PRP Workflow
 
-### PRP Execution
+### Standard Flow: PRD → Plan → Execute
 
-```bash
-# Interactive mode (recommended for development)
-uv run PRPs/scripts/prp_runner.py --prp [prp-name] --interactive
-
-# Headless mode (for CI/CD)
-uv run PRPs/scripts/prp_runner.py --prp [prp-name] --output-format json
-
-# Streaming JSON (for real-time monitoring)
-uv run PRPs/scripts/prp_runner.py --prp [prp-name] --output-format stream-json
+```
+/prp-core:prp-prd "idea"              → Interactive PRD with phases
+/prp-core:prp-plan path/to/prd.md     → Plan for next pending phase
 ```
 
-### Key Claude Commands
+Then choose ONE execution path:
 
-**Core PRP Workflow (Recommended)**:
-- `/prp-core-run-all` - Run complete PRP workflow from feature to PR (orchestrates all steps below)
-- `/prp-core-new-branch` - Create conventional git branch for feature
-- `/prp-core-create` - Create comprehensive feature PRP with deep codebase analysis
-- `/prp-core-execute` - Execute feature PRP with sequential validation
-- `/prp-core-commit` - Create atomic git commit with validation
-- `/prp-core-pr` - Push changes and create PR with comprehensive description
+```
+/prp-core:prp-implement path/to/plan  → Sequential execution with validation loops
+/prp-core:prp-ralph path/to/plan      → Autonomous loop until all validations pass
+/prp-core:build-with-agent-team plan   → Parallel execution with agent teams (Opus only)
+```
 
-**Agent Skills**:
-- `prp-core-runner` - Autonomous skill that orchestrates the complete PRP workflow when you request to implement features using PRP methodology
+All three execution paths share the same **completion protocol**:
+1. Update Source PRD (mark phase complete)
+2. Update Plane tracking (if configured)
+3. Archive plan to `completed/`
+4. Git operations (per strategy)
 
-**Legacy PRP Workflows**:
-- `/prp-story-create` - Convert user story/task into tactical PRP
-- `/prp-story-execute` - Execute story PRP
-- `/prp-base-create` - Generate comprehensive PRPs with research
-- `/prp-base-execute` - Execute PRPs against codebase
-- `/prp-planning-create` - Create planning documents with diagrams
+**IMPORTANT: Keep all three execution paths in sync.** When updating completion logic (PRD status, Plane tracking, git operations, plan archival) in any one of `prp-implement`, `prp-ralph`, or `build-with-agent-team`, apply the same change to all three.
 
-**Development Utilities**:
-- `/prime-core` - Prime Claude with project context
-- `/review-staged-unstaged` - Review git changes using PRP methodology
-- `/smart-commit` - Analyze changes and create smart git commit
+### Execution Path Comparison
+
+| Path | When to Use | Agent Model |
+|------|-------------|-------------|
+| `prp-implement` | Interactive, step-by-step with user oversight | Any |
+| `prp-ralph` | Autonomous loop, hands-off until done | Any |
+| `build-with-agent-team` | Complex builds benefiting from parallelism | Opus 4.6 only |
+
+### Supporting Commands
+
+```
+/prp-core:prp-commit                   → Stage and commit with conventional message
+/prp-core:prp-pr                       → Push and create pull request
+/prp-core:prp-review                   → Review current changes or PR
+/prp-core:prp-review-agents #PR        → Multi-agent review (7 specialized agents)
+/prp-core:prp-debug "problem"          → Root cause analysis
+/prp-core:prp-codebase-question "q"    → Research codebase with parallel agents
+/prp-core:prp-issue-investigate #123   → Investigate a GitHub issue
+/prp-core:prp-issue-fix path/to/inv    → Implement fix from investigation
+/prp-core:prp-research-team "question" → Design research team with parallel agents
+/prp-core:scaffold-repo repo-name      → Create and scaffold a new GitHub repo
+```
+
+## Git Strategy
+
+PRDs declare a `Git Strategy` field in their Technical Approach section. All downstream commands (plan, implement, ralph, build-with-agent-team) read and follow it.
+
+| Strategy | Behavior |
+|----------|----------|
+| `none` | No git operations. User manages git manually. |
+| `main-only` | Commit on current branch. No branch creation. **(default)** |
+| `branch-per-prd` | One feature branch for the entire PRD. Created at PRD generation. |
+| `branch-per-phase` | Each phase gets its own branch. Created by prp-plan. |
+
+### Strategy Flow
+
+| Command | none | main-only | branch-per-prd | branch-per-phase |
+|---------|------|-----------|-----------------|------------------|
+| prp-prd | skip | commit | create branch + commit | commit |
+| prp-plan | skip | commit | verify branch, commit | create phase branch, commit |
+| execute* | skip | commit | verify branch, commit | verify branch, commit |
+
+*execute = prp-implement, prp-ralph, or build-with-agent-team
+
+## Integrations
+
+### Plane (Optional)
+
+PRDs can include a `## Plane Tracking` section with project identifier and module. Commands silently create/update Plane work items via the `plane-track` skill. If Plane MCP is unavailable, everything skips gracefully.
+
+### Context Map (Optional)
+
+Projects can include a `context-map.md` for external knowledge sources. The `prp-prd` and `prp-plan` commands auto-load matching context before research phases.
 
 ## Critical Success Patterns
-
-### The PRP Methodology
 
 1. **Context is King**: Include ALL necessary documentation, examples, and caveats
 2. **Validation Loops**: Provide executable tests/lints the AI can run and fix
 3. **Information Dense**: Use keywords and patterns from the codebase
 4. **Progressive Success**: Start simple, validate, then enhance
-
-### PRP Structure Requirements
-
-- **Goal**: Specific end state and desires
-- **Why**: Business value and user impact
-- **What**: User-visible behavior and technical requirements
-- **All Needed Context**: Documentation URLs, code examples, gotchas, patterns
-- **Implementation Blueprint**: Pseudocode with critical details and task lists
-- **Validation Loop**: Executable commands for syntax, tests, integration
-
-### Validation Gates (Must be Executable)
-
-```bash
-# Level 1: Syntax & Style
-ruff check --fix && mypy .
-
-# Level 2: Unit Tests
-uv run pytest tests/ -v
-
-# Level 3: Integration
-uv run uvicorn main:app --reload
-curl -X POST http://localhost:8000/endpoint -H "Content-Type: application/json" -d '{...}'
-
-# Level 4: Deployment
-# mcp servers, or other creative ways to self validate
-```
+5. **One-Pass Target**: Plans should enable implementation without clarification
 
 ## Anti-Patterns to Avoid
 
-- L Don't create minimal context prompts - context is everything - the PRP must be comprehensive and self-contained, reference relevant documentation and examples.
-- L Don't skip validation steps - they're critical for one-pass success - The better The AI is at running the validation loop, the more likely it is to succeed.
-- L Don't ignore the structured PRP format - it's battle-tested
-- L Don't create new patterns when existing templates work
-- L Don't hardcode values that should be config
-- L Don't catch all exceptions - be specific
+- Don't create minimal context prompts — context is everything
+- Don't skip validation steps — they're critical for one-pass success
+- Don't ignore the structured PRP format — it's battle-tested
+- Don't create new patterns when existing templates work
+- Don't hardcode values that should be config
+- Don't catch all exceptions — be specific
+- Don't duplicate plugin content into `.claude/` directories — edit `plugins/prp-core/` directly
 
-## Working with This Framework
-
-### When Creating new PRPs
-
-1. **Context Process**: New PRPs must consist of context sections, Context is King!
-2.
-
-### When Executing PRPs
-
-1. **Load PRP**: Read and understand all context and requirements
-2. **ULTRATHINK**: Create comprehensive plan, break down into todos, use subagents, batch tool etc check prps/ai_docs/
-3. **Execute**: Implement following the blueprint
-4. **Validate**: Run each validation command, fix failures
-5. **Complete**: Ensure all checklist items done
-
-### Command Usage
-
-- Read the .claude/commands directory
-- Access via `/` prefix in Claude Code
-- Commands are self-documenting with argument placeholders
-- Use parallel creation commands for rapid development
-- Leverage existing review and refactoring commands
-
-## Project Structure Understanding
+## Project Structure
 
 ```
-PRPs-agentic-eng/
-.claude/
-  commands/           # 28+ Claude Code commands
-  settings.local.json # Tool permissions
-PRPs/
-  templates/          # PRP templates with validation
-  scripts/           # PRP runner and utilities
-  ai_docs/           # Curated Claude Code documentation
-   *.md               # Active and example PRPs
- claude_md_files/        # Framework-specific CLAUDE.md examples
- pyproject.toml         # Python package configuration
+PRPs-agentic-sdlc-starter/
+  plugins/prp-core/          # THE plugin — all commands, agents, skills, hooks
+  .claude/PRPs/              # Artifact storage (plans, PRDs, reports)
+  PRPs/
+    templates/               # PRP templates with validation
+    scripts/                 # PRP runner and utilities
+    ai_docs/                 # Curated Claude Code documentation
+  claude_md_files/           # Framework-specific CLAUDE.md examples
+  pyproject.toml             # Python package configuration
+  CLAUDE.md                  # This file
 ```
-
-Remember: This framework is about **one-pass implementation success through comprehensive context and validation**. Every PRP should contain the exact context for an AI agent to successfully implement working code in a single pass.

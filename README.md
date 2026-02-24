@@ -57,14 +57,17 @@ A PRP keeps the goal and justification sections of a PRD yet adds AI-critical la
 
 ## Quick Start
 
-### Option 1: Copy Commands to Your Project
+### Install as Plugin
 
-```bash
-# From your project root
-cp -r /path/to/PRPs-agentic-eng/.claude/commands/prp-core .claude/commands/
+Add this repo as a Claude Code plugin in your project's `.claude/settings.json`:
+
+```json
+{
+  "plugins": ["path/to/PRPs-agentic-sdlc-starter/plugins/prp-core"]
+}
 ```
 
-### Option 2: Clone Repository
+### Or Clone Repository
 
 ```bash
 git clone https://github.com/Wirasm/PRPs-agentic-eng.git
@@ -75,7 +78,7 @@ cd PRPs-agentic-eng
 
 ## Commands
 
-The `.claude/commands/prp-core/` directory contains the core PRP workflow commands:
+All commands are provided by the `prp-core` plugin (`plugins/prp-core/commands/`).
 
 ### Core Workflow
 
@@ -83,7 +86,18 @@ The `.claude/commands/prp-core/` directory contains the core PRP workflow comman
 | ---------------- | -------------------------------------------------------- |
 | `/prp-prd`       | Interactive PRD generator with implementation phases     |
 | `/prp-plan`      | Create implementation plan (from PRD or free-form input) |
-| `/prp-implement` | Execute a plan with validation loops                     |
+
+### Three Execution Paths
+
+After creating a plan, choose one of three ways to execute it:
+
+| Path | Command | When to Use | Model |
+|------|---------|-------------|-------|
+| **Sequential** | `/prp-implement path/to/plan` | Step-by-step with user oversight | Any |
+| **Autonomous** | `/prp-ralph path/to/plan` | Hands-off loop until all validations pass | Any |
+| **Parallel** | `/build-with-agent-team path/to/plan` | Multiple agents collaborating in parallel | Opus 4.6 only |
+
+All three share the same **completion protocol**: update source PRD, update Plane tracking, archive plan, and execute git operations per the PRD's git strategy.
 
 ### Issue & Debug Workflow
 
@@ -100,13 +114,6 @@ The `.claude/commands/prp-core/` directory contains the core PRP workflow comman
 | `/prp-commit` | Smart commit with natural language file targeting |
 | `/prp-pr`     | Create PR with template support                   |
 | `/prp-review` | Comprehensive PR code review                      |
-
-### Autonomous Loop
-
-| Command             | Description                                      |
-| ------------------- | ------------------------------------------------ |
-| `/prp-ralph`        | Start autonomous loop until all validations pass |
-| `/prp-ralph-cancel` | Cancel active Ralph loop                         |
 
 ---
 
@@ -173,20 +180,23 @@ The stop hook must be configured in `.claude/settings.local.json`:
 
 ## Workflow Overview
 
-### Large Features: PRD → Plan → Implement
+### Large Features: PRD → Plan → Execute
 
 ```
 /prp-prd "user authentication system"
     ↓
-Creates PRD with Implementation Phases table
+Creates PRD with Implementation Phases table + Git Strategy
     ↓
 /prp-plan .claude/PRPs/prds/user-auth.prd.md
     ↓
 Auto-selects next pending phase, creates plan
     ↓
-/prp-implement .claude/PRPs/plans/user-auth-phase-1.plan.md
+Choose ONE execution path:
+  /prp-implement .claude/PRPs/plans/user-auth-phase-1.plan.md   ← sequential
+  /prp-ralph .claude/PRPs/plans/user-auth-phase-1.plan.md       ← autonomous
+  /build-with-agent-team .claude/PRPs/plans/user-auth-phase-1.plan.md  ← parallel (Opus)
     ↓
-Executes plan, updates PRD progress, archives plan
+Executes plan, updates PRD progress, archives plan, commits per git strategy
     ↓
 Repeat /prp-plan for next phase
 ```
@@ -196,8 +206,6 @@ Repeat /prp-plan for next phase
 ```
 /prp-plan "add pagination to the API"
     ↓
-Creates implementation plan from description
-    ↓
 /prp-implement .claude/PRPs/plans/add-pagination.plan.md
 ```
 
@@ -206,11 +214,7 @@ Creates implementation plan from description
 ```
 /prp-issue-investigate 123
     ↓
-Analyzes issue, creates investigation artifact
-    ↓
 /prp-issue-fix 123
-    ↓
-Implements fix, creates PR
 ```
 
 ---

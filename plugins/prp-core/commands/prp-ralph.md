@@ -69,13 +69,13 @@ If input is a `.prd.md` file:
 
 **Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
 
-Read the plan (or PRD) file and parse its `## Plane Tracking` section. If a valid project identifier exists (not "N/A" or "Skipped"):
+Read `Plane Strategy` from the plan's `## Metadata` table (or source PRD's Technical Approach). If `integrated`:
 
 1. Call plane-track: action=`create`, type=`Ralph`, title=`{Feature Name}`, project_identifier=`{from plan}`, module_id=`{from plan}`, description=`Ralph loop executing plan: {file_path}`, priority=`medium`
 2. Store the returned `work_item_id` for status update at completion
 3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
 
-If Plane MCP is unavailable or no tracking metadata, skip silently.
+If `Plane Strategy` is `none` or missing, skip all Plane operations silently. If Plane MCP is unavailable, skip silently.
 
 **PHASE_1_CHECKPOINT:**
 - [ ] Input parsed (file path + max iterations)
@@ -354,7 +354,7 @@ ALL of these must be true:
 
 2. **Plane Tracking — Update Status (silent)**
 
-   If a Ralph work item was created in Phase 1.5:
+   If `Plane Strategy` is `integrated` and a Ralph work item was created in Phase 1.5:
    - Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
    - If Plane MCP is unavailable, skip silently
 

@@ -348,20 +348,95 @@ Example plan validation section:
 
 ---
 
+## Step 0: Read Plan & Extract Metadata
+
+Before team setup, extract metadata from the plan:
+
+1. **Source PRD**: Check the plan's `## Metadata` table for `Source PRD` row. If found, read the PRD file.
+2. **Git Strategy**: If a source PRD exists, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if not specified or no PRD.
+3. **Plane Strategy**: Read `Plane Strategy` from the plan's `## Metadata` table. Default to `none` if not specified.
+4. **Plane Tracking** (if Plane Strategy is `integrated`): Parse `## Plane Tracking` section from the plan. Create a work item using `plane-track` skill logic:
+   - action: `create`, type: `Build-Team`, title: `{Feature Name}`, project_identifier: `{from plan}`, module_id: `{from plan}`
+   - Store returned `work_item_id` for completion update
+   - If Plane Strategy is `none`, skip all Plane operations. If Plane MCP unavailable, skip silently.
+
+---
+
 ## Execute
 
 Now read the plan at `$ARGUMENTS[0]` and begin:
 
 1. Read and understand the plan
-2. Determine team size (use `$ARGUMENTS[1]` if provided, otherwise decide)
-3. Define agent roles, ownership, **cross-cutting concern assignments**, and **validation requirements for each**
-4. **Map the contract chain** — which agent produces interfaces that others consume?
-5. Enter Delegate Mode
-6. **Spawn upstream agents first** — their first task is publishing their contract
-7. **Receive and verify each contract** — check for ambiguities, exact URLs, response shapes
-8. **Forward verified contracts to downstream agents** — include in their spawn prompt
-9. Spawn downstream agents with verified contracts + their validation checklist
-10. **Run contract diff before integration** — compare backend's curl commands vs frontend's fetch URLs
-11. When all agents return, run **end-to-end validation yourself** (start both servers, use agent-browser for UI testing)
-12. If validation fails, re-spawn the relevant agent with the specific issue
-13. Confirm the build meets the plan's requirements
+2. **Extract metadata** (Step 0 above — Source PRD, git strategy, Plane tracking)
+3. Determine team size (use `$ARGUMENTS[1]` if provided, otherwise decide)
+4. Define agent roles, ownership, **cross-cutting concern assignments**, and **validation requirements for each**
+5. **Map the contract chain** — which agent produces interfaces that others consume?
+6. Enter Delegate Mode
+7. **Spawn upstream agents first** — their first task is publishing their contract
+8. **Receive and verify each contract** — check for ambiguities, exact URLs, response shapes
+9. **Forward verified contracts to downstream agents** — include in their spawn prompt
+10. Spawn downstream agents with verified contracts + their validation checklist
+11. **Run contract diff before integration** — compare backend's curl commands vs frontend's fetch URLs
+12. When all agents return, run **end-to-end validation yourself** (start both servers, use agent-browser for UI testing)
+13. If validation fails, re-spawn the relevant agent with the specific issue
+14. Confirm the build meets the plan's requirements
+15. **Run completion protocol** (Step 7 below)
+
+---
+
+## Step 7: Completion Protocol
+
+After all agents are done and validation passes, run the same completion steps as `prp-implement`:
+
+### 7.1 Update Source PRD (if applicable)
+
+Check if the plan was generated from a PRD (try each method in order):
+
+1. **Metadata table**: Look for `Source PRD` row in the plan's `## Metadata` table
+2. **Inline reference**: Search the plan file for `Source PRD:` text anywhere
+3. **PRD directory scan**: If neither found, scan `.claude/PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
+
+If PRD source found:
+1. Read the PRD file
+2. Find the matching phase row in the Implementation Phases table
+3. Update the phase: Change Status from `in-progress` to `complete`
+4. Save the PRD
+
+If no PRD source found: Log a warning: "No source PRD found — skipping PRD status update."
+
+### 7.2 Plane Tracking — Update Status (silent)
+
+If Plane Strategy is `integrated` and a Build-Team work item was created in Step 0:
+- Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
+- If Plane MCP unavailable, skip silently
+
+### 7.3 Archive Plan
+
+```bash
+mkdir -p .claude/PRPs/plans/completed
+mv {plan_path} .claude/PRPs/plans/completed/
+```
+
+### 7.4 Git Operations
+
+**Read git strategy from Step 0** (default `main-only` if not determined).
+
+- **`none`**: Skip all git operations. Do not stage or commit.
+- **`main-only`**: Commit on current branch:
+  ```bash
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  ```
+- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit:
+  ```bash
+  git checkout feat/{prd-kebab-name}  # if not already on it
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  ```
+- **`branch-per-phase`**: Should already be on the phase branch (created by prp-plan). Verify, then commit:
+  ```bash
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  ```
+
+Use the conventional commit type that best matches the work (feat, fix, refactor, etc.).

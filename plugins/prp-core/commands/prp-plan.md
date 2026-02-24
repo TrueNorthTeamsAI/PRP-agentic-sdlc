@@ -63,6 +63,7 @@ Discover the actual structure before proceeding.
    ```
    SOURCE_PRD: {path to the PRD file}
    GIT_STRATEGY: {from PRD's "Git Strategy" field, default "main-only" if not specified}
+   PLANE_STRATEGY: {from PRD's "Plane Strategy" field, default "none" if not specified}
    PHASE: {phase number and name}
    GOAL: {from phase details}
    SCOPE: {from phase details}
@@ -72,10 +73,10 @@ Discover the actual structure before proceeding.
 
    **IMPORTANT**: Carry `SOURCE_PRD` and `PHASE` into the plan's Metadata table (Phase 6) as `Source PRD` and `PRD Phase` fields.
 
-5. **Extract Plane Tracking** (if present):
+5. **Extract Plane Tracking** (if `PLANE_STRATEGY` is `integrated`):
    - Parse the `## Plane Tracking` section from the PRD
    - Extract: `project_identifier`, `module_name`, `module_id`
-   - If the section says "Skipped" or is missing, set `PLANE_TRACKING: none`
+   - If `PLANE_STRATEGY` is `none` or missing, set `PLANE_TRACKING: none` — do not parse the table
    - Store these values for use in Phase 6
 
 5. **Report selection to user:**
@@ -460,6 +461,7 @@ So that {benefit}
 | Estimated Tasks  | {count}                                           |
 | Source PRD       | {prd-file-path or N/A}                            |
 | PRD Phase        | {phase number and name or N/A}                    |
+| Plane Strategy   | {from PRD or "none"}                              |
 
 ---
 
@@ -870,13 +872,13 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
 **Plane Tracking** (silent, using `plane-track` skill logic — see `plugins/prp-core/skills/plane-track/SKILL.md`):
 
-If Plane Tracking metadata was extracted from the PRD in Phase 0 (project_identifier is not "N/A" or "Skipped"):
+If `PLANE_STRATEGY` is `integrated` (from Phase 0 context):
 
 1. Call plane-track: action=`create`, type=`Plan`, title=`{Feature Name} - Phase {N}`, project_identifier=`{from PRD}`, module_id=`{from PRD}`, description=`{Summary from plan}`
 2. Update the plan file's `## Plane Tracking` table with the returned work_item_id and identifier
 3. If Plane MCP is unavailable, leave Plane Tracking fields as "N/A" and proceed
 
-If no Plane Tracking metadata from PRD, skip silently.
+If `PLANE_STRATEGY` is `none` or not specified, skip silently.
 
 **Git Operations** (after writing the plan file, updating the PRD, and Plane tracking):
 
