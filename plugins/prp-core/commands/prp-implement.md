@@ -505,6 +505,16 @@ Step-by-step instructions to manually run and verify what was implemented.
 
 **If no PRD source found after all methods**: Log a warning to the user: "No source PRD found — skipping PRD status update. To link manually, add `| Source PRD | path/to/file.prd.md |` to the plan's Metadata table."
 
+**Check if ALL PRD phases are now complete:**
+
+If a PRD was found and updated, re-read the PRD's Implementation Phases table. If every phase has Status `complete`:
+1. Archive the PRD to the completed folder:
+   ```bash
+   mkdir -p .claude/PRPs/prds/completed
+   mv {prd_path} .claude/PRPs/prds/completed/
+   ```
+2. Log: "All PRD phases complete — PRD archived to `.claude/PRPs/prds/completed/`"
+
 ### 5.4 Plane Tracking — Update Status (silent)
 
 If `Plane Strategy` is `integrated` and an Implement work item was created in Phase 1.3:

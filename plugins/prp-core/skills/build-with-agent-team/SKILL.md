@@ -404,6 +404,16 @@ If PRD source found:
 
 If no PRD source found: Log a warning: "No source PRD found — skipping PRD status update."
 
+**Check if ALL PRD phases are now complete:**
+
+If a PRD was found and updated, re-read the PRD's Implementation Phases table. If every phase has Status `complete`:
+1. Archive the PRD to the completed folder:
+   ```bash
+   mkdir -p .claude/PRPs/prds/completed
+   mv {prd_path} .claude/PRPs/prds/completed/
+   ```
+2. Log: "All PRD phases complete — PRD archived to `.claude/PRPs/prds/completed/`"
+
 ### 7.2 Plane Tracking — Update Status (silent)
 
 If Plane Strategy is `integrated` and a Build-Team work item was created in Step 0:

@@ -173,6 +173,15 @@ Append to the state file's progress log (see Section 6).
 
 This exact string signals that the Ralph loop should end.
 
+### Before Outputting the Completion Signal
+
+Before signaling completion, you MUST run the completion protocol from the `prp-ralph` command:
+
+1. **Update Source PRD** — Find the source PRD (from plan metadata, inline reference, or directory scan). Update the phase status from `in-progress` to `complete`. If all PRD phases are now complete, archive the PRD to `.claude/PRPs/prds/completed/`.
+2. **Archive the plan** to `.claude/PRPs/plans/completed/`
+3. **Run git operations** per the PRD's git strategy
+4. **Clean up state** — remove `.claude/prp-ralph.state.md`
+
 ### When to Output the Completion Signal
 
 Output `<promise>COMPLETE</promise>` ONLY when ALL of these are true:
@@ -184,6 +193,7 @@ Output `<promise>COMPLETE</promise>` ONLY when ALL of these are true:
 5. **Build passes** - Successful build (if applicable)
 6. **Journey/e2e validation passes** - All automated journeys pass (if plan has User Journeys)
 7. **Changes committed** - All work committed to git
+8. **Source PRD updated** - Phase status set to `complete` (if PRD exists)
 
 ### When NOT to Output the Completion Signal
 
@@ -391,6 +401,9 @@ This skill is **not user-invoked**. It provides the knowledge Claude needs durin
 - [ ] Run journey/e2e validation (if applicable)
 - [ ] Commit changes
 - [ ] Update progress log
+- [ ] If completing: update source PRD phase status to `complete`
+- [ ] If completing: check if all PRD phases done → archive PRD
+- [ ] If completing: archive plan to completed folder
 - [ ] Decide: complete or continue
 
 ### Validation Commands (Common)
