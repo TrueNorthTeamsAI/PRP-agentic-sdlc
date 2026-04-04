@@ -423,7 +423,26 @@ NOT_BUILDING (explicit scope limits):
 
 ## Phase 6: GENERATE - Implementation Plan File
 
-**OUTPUT_PATH**: `.claude/PRPs/plans/{kebab-case-feature-name}.plan.md`
+### 6.0 Numbering and Filename
+
+1. **Determine the prefix** from the parent PRD's filename (if input was a PRD file):
+   - If PRD filename starts with `V` (e.g., `V001-PRD003-auth.prd.md`): prefix is `V001-PRD003`
+   - If PRD filename starts with `PRD` (e.g., `PRD004-search.prd.md`): prefix is `PRD004`
+   - If PRD filename has no number prefix (legacy): use `PRD000` as prefix (backward compatibility)
+   - If input was free-form text (no PRD): use `PRD000` as prefix
+
+2. **Assign plan number**:
+   1. Read `.claude/PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
+   2. Increment the `plan` counter by 1.
+   3. Write updated counters back to `.claude/PRPs/.counters.json` (use Write tool).
+   4. Zero-pad the new number to 3 digits (e.g., `5` → `005`).
+   5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
+
+3. **Generate filename**: `{prefix}-P{NNN}-{kebab-case-feature-name}.plan.md`
+   - Example: `V001-PRD003-P005-auth-implementation.plan.md`
+   - Example: `PRD004-P006-search-indexing.plan.md`
+
+**OUTPUT_PATH**: `.claude/PRPs/plans/{numbered-filename}`
 
 Create directory if needed: `mkdir -p .claude/PRPs/plans`
 
@@ -860,7 +879,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 </process>
 
 <output>
-**OUTPUT_FILE**: `.claude/PRPs/plans/{kebab-case-feature-name}.plan.md`
+**OUTPUT_FILE**: `.claude/PRPs/plans/{numbered-filename}` (e.g., `V001-PRD003-P005-auth-implementation.plan.md`)
 
 **If input was from PRD file**, also update the PRD:
 
@@ -887,20 +906,20 @@ Read `GIT_STRATEGY` from Phase 0 context (default `main-only` if no PRD or field
 - **`none`**: Skip all git operations.
 - **`main-only`**: Commit on current branch:
   ```bash
-  git add .claude/PRPs/plans/{feature-name}.plan.md {prd-file-path if updated}
-  git commit -m "docs: add implementation plan for {feature-name}"
+  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
-- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit:
+- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-id}-{prd-name}`). If not, check it out. Then commit:
   ```bash
-  git checkout feat/{prd-kebab-name}  # if not already on it
-  git add .claude/PRPs/plans/{feature-name}.plan.md {prd-file-path if updated}
-  git commit -m "docs: add implementation plan for {feature-name}"
+  git checkout feat/{prd-id}-{prd-kebab-name}  # if not already on it
+  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 - **`branch-per-phase`**: Create a phase branch and commit:
   ```bash
-  git checkout -b feat/{prd-kebab-name}/phase-{N}-{phase-kebab}
-  git add .claude/PRPs/plans/{feature-name}.plan.md {prd-file-path if updated}
-  git commit -m "docs: add implementation plan for {feature-name}"
+  git checkout -b feat/{plan-id}-{phase-kebab}
+  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 
 **REPORT_TO_USER** (display after creating plan):
@@ -908,7 +927,7 @@ Read `GIT_STRATEGY` from Phase 0 context (default `main-only` if no PRD or field
 ```markdown
 ## Plan Created
 
-**File**: `.claude/PRPs/plans/{feature-name}.plan.md`
+**File**: `.claude/PRPs/plans/{numbered-filename}`
 
 {If from PRD:}
 **Source PRD**: `{prd-file-path}`
@@ -949,7 +968,7 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 **Confidence Score**: {1-10}/10 for one-pass implementation success
 - {Rationale for score}
 
-**Next Step**: To execute, run: `/prp-implement .claude/PRPs/plans/{feature-name}.plan.md`
+**Next Step**: To execute, run: `/prp-implement .claude/PRPs/plans/{numbered-filename}`
 ````
 
 </output>

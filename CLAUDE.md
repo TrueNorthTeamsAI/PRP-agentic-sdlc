@@ -23,7 +23,9 @@ plugins/prp-core/
 ```
 
 The `.claude/` directory in this repo is reserved for:
-- `.claude/PRPs/` — Artifact storage (plans, PRDs, reports, investigations)
+- `.claude/PRPs/` — Artifact storage (plans, PRDs, visions, reports, investigations)
+- `.claude/PRPs/visions/` — Vision documents (active); `completed/` subfolder for archived visions
+- `.claude/PRPs/.counters.json` — Global artifact numbering counters
 - `.claude/settings.local.json` — Tool permissions
 
 ### Template-Based Methodology
@@ -39,10 +41,14 @@ The `.claude/` directory in this repo is reserved for:
 
 ## PRP Workflow
 
-### Standard Flow: PRD → Plan → Execute
+### Vision → PRD → Plan → Execute
+
+The PRP framework supports an optional **Vision** layer above PRDs. A Vision captures strategic objectives that span multiple PRDs, providing the "why behind the why."
 
 ```
-/prp-core:prp-prd "idea"              → Interactive PRD with phases
+/prp-core:prp-vision "objective"      → Interactive vision for major milestones
+/prp-core:prp-prd "idea"              → Interactive PRD (standalone)
+/prp-core:prp-prd --vision path "idea" → Interactive PRD linked to a vision
 /prp-core:prp-plan path/to/prd.md     → Plan for next pending phase
 ```
 
@@ -69,6 +75,34 @@ All three execution paths share the same **completion protocol**:
 | `prp-implement` | Interactive, step-by-step with user oversight | Any |
 | `prp-ralph` | Autonomous loop, hands-off until done | Any |
 | `build-with-agent-team` | Complex builds benefiting from parallelism | Opus 4.6 only |
+
+### Vision Layer
+
+Visions sit above PRDs and capture strategic objectives for major milestones:
+
+- **One active vision** per project at a time
+- PRDs link to visions via `--vision` flag: `/prp-prd --vision .claude/PRPs/visions/V001-name.vision.md`
+- Vision's git strategy cascades to all PRDs: `none`→`none`, `prd`→`branch-per-prd`, `plan`→`branch-per-phase`
+- Vision's PRD Tracker is automatically updated when PRDs are created under it
+- Completed visions move to `.claude/PRPs/visions/completed/`
+- Stored in `.claude/PRPs/visions/`
+
+### Artifact Numbering System
+
+All artifacts use hierarchical numbering for lineage and discoverability:
+
+```
+V001                    — Vision
+V001-PRD001             — PRD linked to vision V001
+V001-PRD001-P001        — Plan under that PRD
+PRD002                  — Standalone PRD (no vision)
+PRD002-P001             — Plan under standalone PRD
+```
+
+- Numbering is global per project (counters never reset)
+- Numbers are zero-padded to 3 digits
+- Counter state stored in `.claude/PRPs/.counters.json`
+- Standalone PRDs and plans (without a vision) get their own sequential number
 
 ### Supporting Commands
 
@@ -139,7 +173,7 @@ Projects can include a `context-map.md` for external knowledge sources. The `prp
 ```
 PRPs-agentic-sdlc-starter/
   plugins/prp-core/          # THE plugin — all commands, agents, skills, hooks
-  .claude/PRPs/              # Artifact storage (plans, PRDs, reports)
+  .claude/PRPs/              # Artifact storage (plans, PRDs, visions, reports)
   PRPs/
     templates/               # PRP templates with validation
     scripts/                 # PRP runner and utilities
