@@ -534,21 +534,24 @@ mv $ARGUMENTS .claude/PRPs/plans/completed/
 **Determine git strategy**: If a source PRD was found in step 5.3, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if no PRD or field is missing. If no PRD exists, ask the user which strategy to use.
 
 - **`none`**: Skip all git operations. Do not stage or commit.
-- **`main-only`**: Commit on current branch:
+- **`main-only`**: Commit on current branch and push:
   ```bash
   git add -A
   git commit -m "feat: implement {feature-name}"
+  git push -u origin HEAD
   ```
-- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit:
+- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit and push:
   ```bash
   git checkout feat/{prd-kebab-name}  # if not already on it
   git add -A
   git commit -m "feat: implement {feature-name}"
+  git push -u origin HEAD
   ```
-- **`branch-per-phase`**: Should already be on the phase branch (created by prp-plan). Verify, then commit:
+- **`branch-per-phase`**: Should already be on the phase branch (created by prp-plan). Verify, then commit and push:
   ```bash
   git add -A
   git commit -m "feat: implement {feature-name}"
+  git push -u origin HEAD
   ```
 
 Use the conventional commit type that best matches the work (feat, fix, refactor, etc.).
