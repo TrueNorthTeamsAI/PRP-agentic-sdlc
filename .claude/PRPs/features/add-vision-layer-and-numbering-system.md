@@ -104,6 +104,7 @@ PRD002-P001             — Plan under standalone PRD
 | Scope Boundaries | What's in, what's explicitly out | No |
 | Key Assumptions & Risks | What could invalidate the vision | No |
 | Context & References | External sources (repos, URLs, docs) | No |
+| Git Strategy | Branching model for PRDs and plans under this vision | No |
 | PRD Tracker | Living table of PRDs spawned from this vision | **Yes** |
 
 ### Vision Discovery Flow
@@ -135,6 +136,10 @@ PRD002-P001             — Plan under standalone PRD
                           ↓
 ┌─────────────────────────────────────────────────────────┐
 │  SUCCESS DEFINITION: How will you measure it worked?    │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│  GIT STRATEGY: Branching model (none / prd / plan)      │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -208,6 +213,48 @@ During vision creation (Phase 6: Context Gathering):
 2. Add each reference to the vision doc's Context & References section
 3. For each reference, invoke context-add by using the **Skill** tool: `skill: "prp-core:context-add", args: "{path-or-url}"`. This runs the context-add skill's full flow (auto-detect source type, resolve paths, ask for section/label/description, write to context-map.md). When the skill prompts for a section name, suggest the vision identifier (e.g., `V001 User Onboarding`) to group vision context together in context-map.md.
 4. If the Skill tool call fails or context-add is unavailable, log a warning but continue vision creation — context registration is not a blocker.
+
+### Git Strategy (Vision-Level)
+
+The vision defines the branching model that all PRDs and plans under it follow. This is **optional** — if not set, defaults to `none`. The three options:
+
+**`none`** — No branching. All work happens directly on the main/current branch.
+- PRDs and plans commit directly to main
+- No PRs created automatically
+- Simplest model, suitable for solo work or small changes
+
+**`prd`** — One feature branch per PRD. PR created when the PRD is fully implemented.
+```
+main
+ └── feat/V001-PRD001-auth          ← branch created when PRD starts
+      ├── commit: plan P001 work
+      ├── commit: plan P002 work
+      └── PR → main                 ← created when all plans under this PRD are done
+```
+- Branch naming: `feat/{prd-id}-{kebab-name}` (e.g., `feat/V001-PRD001-auth-middleware`)
+- All plans under the PRD commit to the same branch
+- Single PR back to main when the PRD is complete
+
+**`plan`** — One branch per PRD, with sub-branches per plan. PRs at each level.
+```
+main
+ └── feat/V001-PRD001-auth          ← PRD branch, created when PRD starts
+      ├── feat/V001-PRD001-P001-setup   ← plan sub-branch
+      │    └── PR → feat/V001-PRD001-auth    ← PR when plan is done
+      ├── feat/V001-PRD001-P002-endpoints
+      │    └── PR → feat/V001-PRD001-auth    ← PR when plan is done
+      └── PR → main                          ← PR when all plans merged to PRD branch
+```
+- PRD branch naming: `feat/{prd-id}-{kebab-name}`
+- Plan sub-branch naming: `feat/{plan-id}-{kebab-name}`
+- Each plan implementation ends with a PR back to the PRD branch
+- When all plans are merged to the PRD branch, a final PR goes from PRD branch → main
+
+**How this flows downstream**:
+- The vision's git strategy is recorded in the vision doc's `## Git Strategy` section
+- When `/prp-prd --vision` creates a PRD, it reads the vision's git strategy and records it in the PRD's `Technical Approach > Git Strategy` field (mapped: `none`→`none`, `prd`→`branch-per-prd`, `plan`→`branch-per-phase`)
+- `/prp-plan` and `/prp-implement` already respect the PRD's git strategy field — no changes needed there
+- This means the vision sets the strategy once, and it cascades automatically through PRDs → plans → implementations
 
 ### Active Vision Lifecycle
 
@@ -347,6 +394,20 @@ created: "{timestamp}"
 |-------|------|------------|-------------|
 | {Source name} | {web/project/file/second-brain/obsidian/etc.} | {path or URL} | {What it contains} |
 
+## Git Strategy
+
+<!--
+  Branching model for all PRDs and plans under this vision. Optional — defaults to none.
+  This value cascades: PRDs created under this vision inherit it automatically.
+
+  OPTIONS:
+    none  — All work on main branch, no PRs created automatically
+    prd   — One branch per PRD, single PR → main when PRD is complete
+    plan  — One branch per PRD + sub-branches per plan, PRs at each level
+-->
+
+**Strategy**: `{none | prd | plan}`
+
 ## PRD Tracker
 
 <!--
@@ -412,20 +473,30 @@ created: "{timestamp}"
     1. How will you know this vision has been achieved?
     2. What specific, measurable outcomes define success?
     3. What timeframe are you targeting?
-  - Phase 8: GENERATE — Write the vision doc:
+  - Phase 8: GIT STRATEGY (Optional) — Ask:
+    > **How should we handle branching for this vision's work?**
+    >
+    > - `none` — All work on the main branch. No branches or PRs created automatically. (default)
+    > - `prd` — One feature branch per PRD. A single PR back to main when the PRD is fully implemented.
+    > - `plan` — One branch per PRD, with sub-branches for each plan. PRs created at the end of each plan implementation back to the PRD branch, and a final PR from the PRD branch back to main.
+    
+    If the user skips or says "none", record `none`. This value is written to the vision doc's `## Git Strategy` section and cascades to all PRDs created under this vision.
+  - Phase 9: GENERATE — Write the vision doc:
     1. Read `.claude/PRPs/.counters.json` (use Read tool). If file doesn't exist, treat as `{"vision": 0, "prd": 0, "plan": 0}`.
     2. Increment `vision` counter by 1.
     3. Write updated counters back (use Write tool).
     4. Create directory: `mkdir -p .claude/PRPs/visions`
     5. Generate filename: `V{NNN}-{kebab-case-name}.vision.md` (e.g., `V001-user-onboarding.vision.md`)
     6. Fill in the vision template (from `plugins/prp-core/templates/vision.md`) with discovery answers
-    7. The PRD Tracker starts empty or with preliminary PRDs if the user mentioned specific features during discovery
-  - Phase 8.5: GIT — Commit the vision doc:
+    7. Write the selected git strategy to the `## Git Strategy` section
+    8. The PRD Tracker starts empty or with preliminary PRDs if the user mentioned specific features during discovery
+  - Phase 9.5: GIT — Commit the vision doc:
     ```bash
     git add .claude/PRPs/visions/V{NNN}-{name}.vision.md .claude/PRPs/.counters.json
     git commit -m "docs: add vision V{NNN} for {feature-name}"
+    git push -u origin HEAD
     ```
-  - Phase 9: OUTPUT — Report summary with:
+  - Phase 10: OUTPUT — Report summary with:
     - File path
     - Vision ID and title
     - Key objectives (bullet list)
@@ -444,7 +515,7 @@ created: "{timestamp}"
 - **DETAILS**:
   - **Argument parsing**: At the start of Phase 1 (INITIATE), check if `$ARGUMENTS` contains `--vision {path}`. Extract the vision path and strip it from the remaining arguments. The remaining text is the feature description (same as today).
   - **If vision provided**:
-    1. Read the vision file to extract: title, vision ID (from filename, e.g., `V001`), and section headings
+    1. Read the vision file to extract: title, vision ID (from filename, e.g., `V001`), section headings, and git strategy
     2. After generating the PRD, insert a `## Vision Reference` section immediately after the PRD title, using this exact format:
        ```markdown
        ## Vision Reference
@@ -473,6 +544,7 @@ created: "{timestamp}"
   - **Where to add these changes in prp-prd.md**:
     - Argument parsing: add to Phase 1 (INITIATE), before the first user interaction
     - Vision reference section: add to Phase 7 (GENERATE), in the PRD template, conditionally included
+    - Git strategy cascade: in Phase 6 (DECISIONS), if vision is provided, read its `## Git Strategy` value and pre-fill the PRD's git strategy question. Map vision strategies to PRD strategies: `none`→`none`, `prd`→`branch-per-prd`, `plan`→`branch-per-phase`. The user can still override.
     - Vision tracker update: add as Phase 7.1 (after GENERATE, before TRACK), only when vision is provided
     - Numbering: add to Phase 7 (GENERATE), replacing the current filename generation logic
 - **GOTCHA**: Must handle both vision-linked and standalone PRDs
