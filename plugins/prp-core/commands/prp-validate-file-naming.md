@@ -46,21 +46,44 @@ Build an inventory of every artifact, noting:
 - Which are missing prefixes (legacy names)
 - Which have wrong prefixes (e.g., `PRD000` placeholder)
 
-### Phase 2: Determine PRD Ordering
+### Phase 2: Determine Top-Level Document Ordering
 
-**If the user provides an explicit ordering**, use it. Otherwise, infer ordering from:
-1. Git history — which PRD file was committed first
-2. File modification dates
-3. References between PRDs (a PRD that references another is likely later)
+Top-level documents are **visions** (if any exist) or **standalone PRDs** (if no visions exist). Their ordering determines the numbering prefix for all downstream artifacts.
 
-Ask the user to confirm the ordering before proceeding:
+**Step 1: Identify which documents need ordering.**
+
+- If visions exist → visions are top-level. Standalone PRDs (not linked to a vision) are also top-level.
+- If no visions exist → standalone PRDs are top-level.
+- Vision-linked PRDs inherit their vision's number and are ordered within that vision (Phase 2b).
+
+**Step 2: Try to infer ordering** from:
+1. Existing correct prefixes — preserve any `V{NNN}` or `PRD{NNN}` already assigned
+2. Git history — which file was committed first (`git log --diff-filter=A --format="%ai %s" -- <file>`)
+3. File modification dates
+4. References between documents (a document that references another is likely later)
+
+**Step 3: Present and confirm.**
+
+- If ALL top-level documents already have correct prefixes → use them, no need to ask.
+- Otherwise → present the proposed ordering to the user and ask them to confirm or correct it. Show what evidence you used (git dates, references, etc.) so the user can judge.
 
 ```
-I've identified these PRDs. Please confirm the numbering order:
-  1. PRD001 — {name} ({status})
-  2. PRD002 — {name} ({status})
-  3. PRD003 — {name} ({status})
+I've determined this ordering for your {visions/PRDs}. Please confirm or correct:
+
+  1. {V/PRD}001 — {filename} — {title or slug} (evidence: {committed 2026-01-15 / file date / etc.})
+  2. {V/PRD}002 — {filename} — {title or slug} (evidence: {committed 2026-02-03 / etc.})
+  3. {V/PRD}003 — {filename} — {title or slug} (evidence: {no git history — guessed from file date})
+
+Reply "yes" to confirm, or provide the correct order (e.g., "2, 1, 3").
 ```
+
+**Do not proceed past this phase until the user confirms.**
+
+### Phase 2b: Determine Vision-Linked PRD Ordering
+
+For each vision, determine the order of PRDs linked to it:
+- If PRDs already have correct `V{NNN}-PRD{NNN}` prefixes → preserve them, no need to ask.
+- Otherwise → infer from the vision's PRD Tracker table, git history, or phase references, then present the proposed ordering to the user for confirmation before proceeding.
 
 ### Phase 3: Determine Plan Ordering
 
@@ -68,6 +91,9 @@ For each PRD, read its Implementation Phases table to find referenced plans. The
 1. Check if plans already have `P{NNN}` numbers — preserve those
 2. For unnumbered plans, use git history or file dates to determine creation order
 3. Assign `P{NNN}` numbers globally across all PRDs (not per-PRD)
+
+- If all plans already have correct `P{NNN}` numbers → preserve them, no need to ask.
+- Otherwise → infer ordering, present the proposed plan numbering to the user for confirmation, and wait for approval before proceeding.
 
 ### Phase 4: Rename Files
 
@@ -168,7 +194,7 @@ After:  {"vision": 0, "prd": 3, "plan": 3}
 
 - **Never delete files** — only rename/move
 - **Never renumber existing correctly-numbered artifacts** — only add/fix prefixes
-- **Always ask for PRD ordering confirmation** before renaming if the ordering is ambiguous
+- **Always confirm ordering with the user** — for top-level documents (visions or standalone PRDs), vision-linked PRDs, and plans, infer the best ordering you can, then present it to the user for confirmation before renaming. Do not proceed until the user approves.
 - **Preserve slugs** — keep the descriptive part of filenames intact (only add/fix the prefix)
 - **Global plan counter** — P numbers are unique across the whole project, not per-PRD
 - **Superseded plans** get a `-draft` suffix but keep the same P number as the plan that replaced them (since they share the same phase)
