@@ -17,7 +17,7 @@ plugins/prp-core/
   .claude-plugin/plugin.json  # Plugin manifest
   commands/                   # All PRP commands (prp-plan, prp-implement, etc.)
   agents/                     # Specialized agents (codebase-explorer, code-reviewer, etc.)
-  skills/                     # Skills (build-with-agent-team, plane-track, etc.)
+  skills/                     # Skills (build-with-agent-team, init-project, etc.)
   hooks/                      # Ralph/research stop hooks
   templates/                  # PRP and user journey templates
 ```
@@ -62,11 +62,10 @@ Then choose ONE execution path:
 
 All three execution paths share the same **completion protocol**:
 1. Update Source PRD (mark phase complete)
-2. Update Plane tracking (if configured)
-3. Archive plan to `completed/`
-4. Git operations (per strategy)
+2. Archive plan to `completed/`
+3. Git operations (per strategy)
 
-**IMPORTANT: Keep all three execution paths in sync.** When updating completion logic (PRD status, Plane tracking, git operations, plan archival) in any one of `prp-implement`, `prp-ralph`, or `build-with-agent-team`, apply the same change to all three.
+**IMPORTANT: Keep all three execution paths in sync.** When updating completion logic (PRD status, git operations, plan archival) in any one of `prp-implement`, `prp-ralph`, or `build-with-agent-team`, apply the same change to all three.
 
 ### Execution Path Comparison
 
@@ -141,10 +140,6 @@ PRDs declare a `Git Strategy` field in their Technical Approach section. All dow
 *execute = prp-implement, prp-ralph, or build-with-agent-team
 
 ## Integrations
-
-### Plane (Optional)
-
-PRDs can include a `## Plane Tracking` section with project identifier and module. Commands silently create/update Plane work items via the `plane-track` skill. If Plane MCP is unavailable, everything skips gracefully.
 
 ### Context Map (Optional)
 

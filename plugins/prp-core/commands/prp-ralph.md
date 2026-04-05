@@ -65,23 +65,10 @@ If input is a `.prd.md` file:
 4. Report which phase will be executed
 5. Note: The loop will create and execute a plan for this phase
 
-### 1.5 Plane Tracking — Create Work Item (silent)
-
-**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
-
-Read `Plane Strategy` from the plan's `## Metadata` table (or source PRD's Technical Approach). If `integrated`:
-
-1. Call plane-track: action=`create`, type=`Ralph`, title=`{Feature Name}`, project_identifier=`{from plan}`, module_id=`{from plan}`, description=`Ralph loop executing plan: {file_path}`, priority=`medium`
-2. Store the returned `work_item_id` for status update at completion
-3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
-
-If `Plane Strategy` is `none` or missing, skip all Plane operations silently. If Plane MCP is unavailable, skip silently.
-
 **PHASE_1_CHECKPOINT:**
 - [ ] Input parsed (file path + max iterations)
 - [ ] File exists and is valid type
 - [ ] If PRD: next phase identified
-- [ ] Plane work item created (or skipped)
 
 ---
 
@@ -352,13 +339,7 @@ ALL of these must be true:
    {Any changes made}
    ```
 
-2. **Plane Tracking — Update Status (silent)**
-
-   If `Plane Strategy` is `integrated` and a Ralph work item was created in Phase 1.5:
-   - Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
-   - If Plane MCP is unavailable, skip silently
-
-3. **Archive the Ralph Run**
+2. **Archive the Ralph Run**
 
    ```bash
    # Create archive directory
@@ -543,4 +524,3 @@ cat .claude/PRPs/ralph-archives/2024-01-12-feature-name/learnings.md
 - **PATTERNS_CONSOLIDATED**: Reusable patterns extracted
 - **ARCHIVE_CREATED**: Full run archived for future reference
 - **CLEAN_EXIT**: Completion promise output only when genuinely complete
-- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)

@@ -1,12 +1,12 @@
 ---
 name: init-project
-description: Create a new GitHub repo, clone it, and scaffold with CLAUDE.md template, .gitignore, README, context-map.md, Plane MCP, and Jira MCP integration. Pass the repo name as an argument. Reads defaults from parent CLAUDE.md.
+description: Create a new GitHub repo, clone it, and scaffold with CLAUDE.md template, .gitignore, README, context-map.md, and Jira MCP integration. Pass the repo name as an argument. Reads defaults from parent CLAUDE.md.
 argument-hint: <repo-name>
 ---
 
 # Initialize New Project
 
-Create a new GitHub repository with proper PRP framework scaffolding. This skill handles repo creation, cloning, and initial file setup so every project starts with the right structure — including context tracking, Plane work item integration, and Jira issue tracking.
+Create a new GitHub repository with proper PRP framework scaffolding. This skill handles repo creation, cloning, and initial file setup so every project starts with the right structure — including context tracking and Jira issue tracking.
 
 **Input**: `$ARGUMENTS`
 
@@ -90,26 +90,7 @@ Record the user's choice and map it to the template filename.
 Ask the user:
 > "Give a one-line description of this project (used in GitHub repo description and README):"
 
-### 2.4 Plane Integration
-
-Ask the user:
-> **Plane Integration** (for work item tracking):
->
-> 1. **Plane project identifier** — Which Plane project should track work for this repo? (e.g., `PROJ`)
->    Enter the identifier, or "skip" to set up later.
->
-> 2. **Plane API key** — If you have a Plane API key for this workspace, provide it now.
->    Or "skip" to configure `.mcp.json` manually later.
->
-> 3. **Plane workspace slug** — Your Plane workspace slug (e.g., `LOCALDEV`).
->    Or "skip" to configure later.
->
-> 4. **Plane base URL** — Your Plane instance URL (e.g., `http://localhost:8200` or `https://app.plane.so`).
->    Or "skip" to configure later.
-
-If the user skips all Plane questions, `.mcp.json` will still be created but with placeholder values that need to be filled in.
-
-### 2.5 Jira Integration
+### 2.4 Jira Integration
 
 Ask the user:
 > **Jira Integration** (for issue tracking):
@@ -125,7 +106,7 @@ Ask the user:
 
 If the user skips all Jira questions, `.mcp.json` will include the Jira server with placeholder values that need to be filled in.
 
-### 2.6 Confirm Settings
+### 2.5 Confirm Settings
 
 Present a summary and ask for confirmation before proceeding:
 
@@ -137,8 +118,6 @@ Project Settings:
   Tech Stack:     {stack-name}
   Directory:      {dev-directory}\{repo-name}
   Description:    {description}
-  Plane Project:  {identifier or "Not configured"}
-  Plane Instance: {base-url or "Not configured"}
   Jira URL:       {jira-url or "Not configured"}
   Jira Username:  {jira-username or "Not configured"}
 
@@ -153,7 +132,6 @@ Wait for user confirmation. If "no", ask what to change.
 - [ ] Dev directory determined
 - [ ] Tech stack selected
 - [ ] Description provided
-- [ ] Plane integration settings collected (or explicitly skipped)
 - [ ] Jira integration settings collected (or explicitly skipped)
 - [ ] User confirmed settings
 
@@ -215,17 +193,6 @@ Customize the template:
   ```
 - Keep all remaining template content intact — it contains valuable framework-specific conventions and rules
 
-**After the template content**, append the Plane Integration section:
-
-```markdown
-
-## Plane Integration
-
-| Setting | Value |
-|---------|-------|
-| Default Project | {plane-project-identifier or "TBD"} |
-```
-
 Write the customized content to `{dev-directory}/{repo-name}/CLAUDE.md`.
 
 **If "Other / None" was selected (option 9):**
@@ -252,11 +219,6 @@ Write a minimal CLAUDE.md:
 
 <!-- Naming patterns, gotchas, unique patterns -->
 
-## Plane Integration
-
-| Setting | Value |
-|---------|-------|
-| Default Project | {plane-project-identifier or "TBD"} |
 ```
 
 ### 4.3 Generate .gitignore
@@ -444,25 +406,16 @@ Write to `{dev-directory}/{repo-name}/context-map.md`.
 
 This gives the project a ready-to-use context source registry. The user can add entries later with `/prp-context-add`.
 
-### 4.6 Scaffold .mcp.json (Plane & Jira MCP)
+### 4.6 Scaffold .mcp.json (Jira MCP)
 
 Write `.mcp.json` to `{dev-directory}/{repo-name}/.mcp.json`.
 
-The file contains both the Plane and Jira MCP server configurations. Use actual values where the user provided them, and placeholder values where they skipped.
+The file contains the Jira MCP server configuration. Use actual values where the user provided them, and placeholder values where they skipped.
 
-**If the user provided both Plane and Jira settings:**
+**If the user provided Jira settings:**
 ```json
 {
   "mcpServers": {
-    "plane": {
-      "command": "uvx",
-      "args": ["--with", "pywin32", "plane-mcp-server", "stdio"],
-      "env": {
-        "PLANE_API_KEY": "{plane-api-key}",
-        "PLANE_BASE_URL": "{plane-base-url}",
-        "PLANE_WORKSPACE_SLUG": "{plane-workspace-slug}"
-      }
-    },
     "jira": {
       "type": "stdio",
       "command": "C:\\Users\\Bruce\\.local\\bin\\uvx.exe",
@@ -477,73 +430,10 @@ The file contains both the Plane and Jira MCP server configurations. Use actual 
 }
 ```
 
-**If the user skipped Plane setup but provided Jira settings:**
+**If the user skipped Jira setup:**
 ```json
 {
   "mcpServers": {
-    "plane": {
-      "command": "uvx",
-      "args": ["--with", "pywin32", "plane-mcp-server", "stdio"],
-      "env": {
-        "PLANE_API_KEY": "REPLACE_WITH_YOUR_API_KEY",
-        "PLANE_BASE_URL": "REPLACE_WITH_YOUR_PLANE_URL",
-        "PLANE_WORKSPACE_SLUG": "REPLACE_WITH_YOUR_WORKSPACE_SLUG"
-      }
-    },
-    "jira": {
-      "type": "stdio",
-      "command": "C:\\Users\\Bruce\\.local\\bin\\uvx.exe",
-      "args": ["mcp-atlassian"],
-      "env": {
-        "JIRA_URL": "{jira-url}",
-        "JIRA_USERNAME": "{jira-username}",
-        "JIRA_API_TOKEN": "{jira-api-token}"
-      }
-    }
-  }
-}
-```
-
-**If the user skipped Jira setup but provided Plane settings:**
-```json
-{
-  "mcpServers": {
-    "plane": {
-      "command": "uvx",
-      "args": ["--with", "pywin32", "plane-mcp-server", "stdio"],
-      "env": {
-        "PLANE_API_KEY": "{plane-api-key}",
-        "PLANE_BASE_URL": "{plane-base-url}",
-        "PLANE_WORKSPACE_SLUG": "{plane-workspace-slug}"
-      }
-    },
-    "jira": {
-      "type": "stdio",
-      "command": "C:\\Users\\Bruce\\.local\\bin\\uvx.exe",
-      "args": ["mcp-atlassian"],
-      "env": {
-        "JIRA_URL": "REPLACE_WITH_YOUR_JIRA_URL",
-        "JIRA_USERNAME": "REPLACE_WITH_YOUR_JIRA_USERNAME",
-        "JIRA_API_TOKEN": "REPLACE_WITH_YOUR_JIRA_API_TOKEN"
-      }
-    }
-  }
-}
-```
-
-**If the user skipped both:**
-```json
-{
-  "mcpServers": {
-    "plane": {
-      "command": "uvx",
-      "args": ["--with", "pywin32", "plane-mcp-server", "stdio"],
-      "env": {
-        "PLANE_API_KEY": "REPLACE_WITH_YOUR_API_KEY",
-        "PLANE_BASE_URL": "REPLACE_WITH_YOUR_PLANE_URL",
-        "PLANE_WORKSPACE_SLUG": "REPLACE_WITH_YOUR_WORKSPACE_SLUG"
-      }
-    },
     "jira": {
       "type": "stdio",
       "command": "C:\\Users\\Bruce\\.local\\bin\\uvx.exe",
@@ -560,11 +450,11 @@ The file contains both the Plane and Jira MCP server configurations. Use actual 
 
 **PHASE_4_CHECKPOINT**:
 - [ ] Repository cloned to dev directory
-- [ ] CLAUDE.md written (from template or minimal) with Plane Integration section
+- [ ] CLAUDE.md written (from template or minimal)
 - [ ] .gitignore written (stack-appropriate)
 - [ ] README.md written
 - [ ] context-map.md written (from template)
-- [ ] .mcp.json written (with Plane and Jira MCP config)
+- [ ] .mcp.json written (with Jira MCP config)
 
 ---
 
@@ -584,7 +474,7 @@ If empty (fresh repo with no commits), default to `main`.
 ```bash
 cd "{dev-directory}/{repo-name}"
 git add CLAUDE.md .gitignore README.md context-map.md .mcp.json
-git commit -m "chore: initialize project with CLAUDE.md, context-map, Plane, and Jira integration"
+git commit -m "chore: initialize project with CLAUDE.md, context-map, and Jira integration"
 git push -u origin main
 ```
 
@@ -610,7 +500,6 @@ Project initialized successfully!
   Location:      {dev-directory}\{repo-name}
   GitHub:        https://github.com/{owner}/{repo-name}
   Stack:         {stack-name}
-  Plane Project: {identifier or "Not configured — edit .mcp.json and CLAUDE.md"}
   Jira URL:       {jira-url or "Not configured — edit .mcp.json"}
 
   Files created:
@@ -618,16 +507,15 @@ Project initialized successfully!
     .gitignore      — Stack-appropriate ignore rules
     README.md       — Project overview
     context-map.md  — External context source registry
-    .mcp.json       — MCP server configuration (Plane & Jira)
+    .mcp.json       — MCP server configuration (Jira)
 
 Next steps:
   1. Open the repo: cd "{dev-directory}\{repo-name}"
   2. Review and customize CLAUDE.md for your project
   3. Initialize your project (npm init, uv init, cargo init, etc.)
-  {If Plane was skipped:}
-  4. Configure Plane: edit .mcp.json with your Plane API key and workspace
-  5. Configure Jira: edit .mcp.json with your Jira URL, username, and API token
-  6. Add context sources: /prp-context-add <path-or-url>
+  {If Jira was skipped:}
+  4. Configure Jira: edit .mcp.json with your Jira URL, username, and API token
+  5. Add context sources: /prp-context-add <path-or-url>
   6. Start building: /prp-prd "your feature idea"
 ```
 
@@ -639,8 +527,8 @@ Now run through all phases:
 
 1. Validate the repo name from `$ARGUMENTS` and check prerequisites
 2. Find and parse defaults from scaffold-repo.json or CLAUDE.md
-3. Ask for tech stack, description, Plane integration, Jira integration settings, and confirm
+3. Ask for tech stack, description, Jira integration settings, and confirm
 4. Create the GitHub repo
-5. Clone, scaffold CLAUDE.md (with Plane section), generate .gitignore, README, context-map.md, and .mcp.json (Plane & Jira)
+5. Clone, scaffold CLAUDE.md, generate .gitignore, README, context-map.md, and .mcp.json (Jira)
 6. Commit and push
 7. Report success

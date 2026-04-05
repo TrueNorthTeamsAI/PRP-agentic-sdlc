@@ -63,7 +63,6 @@ Discover the actual structure before proceeding.
    ```
    SOURCE_PRD: {path to the PRD file}
    GIT_STRATEGY: {from PRD's "Git Strategy" field, default "main-only" if not specified}
-   PLANE_STRATEGY: {from PRD's "Plane Strategy" field, default "none" if not specified}
    PHASE: {phase number and name}
    GOAL: {from phase details}
    SCOPE: {from phase details}
@@ -72,12 +71,6 @@ Discover the actual structure before proceeding.
    ```
 
    **IMPORTANT**: Carry `SOURCE_PRD` and `PHASE` into the plan's Metadata table (Phase 6) as `Source PRD` and `PRD Phase` fields.
-
-5. **Extract Plane Tracking** (if `PLANE_STRATEGY` is `integrated`):
-   - Parse the `## Plane Tracking` section from the PRD
-   - Extract: `project_identifier`, `module_name`, `module_id`
-   - If `PLANE_STRATEGY` is `none` or missing, set `PLANE_TRACKING: none` — do not parse the table
-   - Store these values for use in Phase 6
 
 5. **Report selection to user:**
    ```
@@ -97,7 +90,6 @@ Discover the actual structure before proceeding.
 **PHASE_0_CHECKPOINT:**
 - [ ] Input type determined
 - [ ] If PRD: next phase selected and dependencies verified
-- [ ] If PRD: Plane Tracking metadata extracted (or confirmed absent)
 - [ ] Feature description ready for Phase 1
 
 ---
@@ -480,8 +472,6 @@ So that {benefit}
 | Estimated Tasks  | {count}                                           |
 | Source PRD       | {prd-file-path or N/A}                            |
 | PRD Phase        | {phase number and name or N/A}                    |
-| Plane Strategy   | {from PRD or "none"}                              |
-
 ---
 
 ## UX Design
@@ -857,23 +847,6 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
 {Additional context, design decisions, trade-offs, future considerations}
 
----
-
-## Plane Tracking
-
-<!--
-  Inherited from PRD (if applicable). Updated by this plan command.
-  Downstream commands (prp-implement, prp-ralph) read this section.
--->
-
-| Field | Value |
-|-------|-------|
-| Project | {project_identifier from PRD, or "N/A"} |
-| Module | {module_name from PRD, or "N/A"} |
-| Module ID | {module_id from PRD, or "N/A"} |
-| Plan Work Item | {work_item_identifier or "N/A"} |
-| Plan Work Item ID | {work_item_id or "N/A"} |
-
 ````
 
 </process>
@@ -889,17 +862,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
 2. **Edit the PRD file** with these changes
 
-**Plane Tracking** (silent, using `plane-track` skill logic — see `plugins/prp-core/skills/plane-track/SKILL.md`):
-
-If `PLANE_STRATEGY` is `integrated` (from Phase 0 context):
-
-1. Call plane-track: action=`create`, type=`Plan`, title=`{Feature Name} - Phase {N}`, project_identifier=`{from PRD}`, module_id=`{from PRD}`, description=`{Summary from plan}`
-2. Update the plan file's `## Plane Tracking` table with the returned work_item_id and identifier
-3. If Plane MCP is unavailable, leave Plane Tracking fields as "N/A" and proceed
-
-If `PLANE_STRATEGY` is `none` or not specified, skip silently.
-
-**Git Operations** (after writing the plan file, updating the PRD, and Plane tracking):
+**Git Operations** (after writing the plan file and updating the PRD):
 
 Read `GIT_STRATEGY` from Phase 0 context (default `main-only` if no PRD or field missing). If the plan was not generated from a PRD, ask the user which strategy to use.
 
@@ -1025,5 +988,4 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 **UX_DOCUMENTED**: Before/After transformation is visually clear with data flows
 **JOURNEYS_DEFINED**: User journey files created for new user-facing flows with concrete steps
 **ONE_PASS_TARGET**: Confidence score 8+ indicates high likelihood of first-attempt success
-**PLANE_TRACKED**: Plan work item created in Plane with module association (or explicitly skipped/unavailable)
 </success_criteria>

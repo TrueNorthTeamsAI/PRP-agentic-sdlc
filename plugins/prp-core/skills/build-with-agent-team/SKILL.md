@@ -354,11 +354,6 @@ Before team setup, extract metadata from the plan:
 
 1. **Source PRD**: Check the plan's `## Metadata` table for `Source PRD` row. If found, read the PRD file.
 2. **Git Strategy**: If a source PRD exists, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if not specified or no PRD.
-3. **Plane Strategy**: Read `Plane Strategy` from the plan's `## Metadata` table. Default to `none` if not specified.
-4. **Plane Tracking** (if Plane Strategy is `integrated`): Parse `## Plane Tracking` section from the plan. Create a work item using `plane-track` skill logic:
-   - action: `create`, type: `Build-Team`, title: `{Feature Name}`, project_identifier: `{from plan}`, module_id: `{from plan}`
-   - Store returned `work_item_id` for completion update
-   - If Plane Strategy is `none`, skip all Plane operations. If Plane MCP unavailable, skip silently.
 
 ---
 
@@ -367,7 +362,7 @@ Before team setup, extract metadata from the plan:
 Now read the plan at `$ARGUMENTS[0]` and begin:
 
 1. Read and understand the plan
-2. **Extract metadata** (Step 0 above — Source PRD, git strategy, Plane tracking)
+2. **Extract metadata** (Step 0 above — Source PRD, git strategy)
 3. Determine team size (use `$ARGUMENTS[1]` if provided, otherwise decide)
 4. Define agent roles, ownership, **cross-cutting concern assignments**, and **validation requirements for each**
 5. **Map the contract chain** — which agent produces interfaces that others consume?
@@ -414,13 +409,7 @@ If a PRD was found and updated, re-read the PRD's Implementation Phases table. I
    ```
 2. Log: "All PRD phases complete — PRD archived to `.claude/PRPs/prds/completed/`"
 
-### 7.2 Plane Tracking — Update Status (silent)
-
-If Plane Strategy is `integrated` and a Build-Team work item was created in Step 0:
-- Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
-- If Plane MCP unavailable, skip silently
-
-### 7.3 Archive Plan
+### 7.2 Archive Plan
 
 ```bash
 mkdir -p .claude/PRPs/plans/completed

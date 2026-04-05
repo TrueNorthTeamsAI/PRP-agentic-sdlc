@@ -250,10 +250,6 @@ Ask final clarifying questions:
 > *Based on the parent vision's git strategy (`{VISION_GIT_STRATEGY}`), the default is `{mapped-strategy}`. Press enter to accept or choose a different strategy.*
 
 The user can still override.
->
-> 7. **Plane Strategy**: Should we track work items in Plane?
->    - `none` — No Plane tracking
->    - `integrated` — Track in Plane (provide project identifier and module name)
 
 **GATE**: Wait for user responses before generating.
 
@@ -386,8 +382,6 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 
 **Git Strategy**: {none | main-only | branch-per-prd | branch-per-phase}
 
-**Plane Strategy**: {none | integrated}
-
 **Technical Risks**
 
 | Risk | Likelihood | Mitigation |
@@ -473,72 +467,9 @@ _If no e2e framework: user journey validation scripts (bash) will be used instea
 
 ---
 
-## Plane Tracking
-
-<!--
-  Populated by the PRD generator. Downstream commands (prp-plan, prp-implement, etc.)
-  read this section to associate their work items with the correct Plane module.
-  If Plane tracking was skipped, this section will say "Skipped".
--->
-
-| Field | Value |
-|-------|-------|
-| Project | {project_identifier or "Skipped"} |
-| Module | {module_name or "Skipped"} |
-| Module ID | {module_id or "N/A"} |
-| PRD Work Item | {work_item_identifier or "N/A"} |
-| PRD Work Item ID | {work_item_id or "N/A"} |
-
----
-
 *Generated: {timestamp}*
 *Status: DRAFT - needs validation*
 ```
-
----
-
-## Phase 7.25: TRACK - Create Plane Work Items
-
-**This phase runs silently after generating the PRD. Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
-
-**Skip this phase if the Plane Strategy is `none`.**
-
-### 7.25.1 Resolve or Create Module
-
-If the user chose `integrated` for Plane Strategy and provided a project identifier and module name:
-
-1. Call Plane MCP `list_projects` to find the project by identifier. Extract `project_id`.
-2. Call Plane MCP `list_modules` for that project. Search for matching module name.
-3. **If module exists**: Use its `module_id`.
-4. **If module does not exist**: Call Plane MCP `create_module` with the user's module name. Use the returned `module_id`.
-
-**If Plane MCP is unavailable**: Set all Plane Tracking fields in the PRD to "N/A" and proceed. Log: "Plane MCP not available. Skipping work item tracking."
-
-### 7.25.2 Create PRD Work Item
-
-Using `plane-track` skill logic:
-- action: `create`
-- type: `PRD`
-- title: `{Product/Feature Name}` (from the PRD title)
-- project_identifier: `{from user input}`
-- module_id: `{from step 7.25.1}`
-- description: `{Problem Statement from PRD}`
-- priority: `medium`
-
-### 7.25.3 Update PRD File
-
-Edit the `## Plane Tracking` table in the generated PRD file with the actual values:
-- Project identifier
-- Module name and ID
-- Work item identifier (e.g., `PROJ-42`) and ID
-
-**PHASE_7.25_CHECKPOINT:**
-- [ ] Plane project resolved (or skipped)
-- [ ] Module resolved or created (or skipped)
-- [ ] PRD work item created and added to module (or skipped)
-- [ ] PRD file updated with Plane Tracking metadata
-
-**GATE**: No user interaction needed. This is automatic.
 
 ---
 
@@ -603,7 +534,7 @@ After generating the PRD, check if the project has a `CLAUDE.md` file. If it doe
 
 ## Phase 7.75: GIT - Apply Git Strategy
 
-After generating the PRD file (and Plane tracking / CLAUDE.md updates), apply the git strategy:
+After generating the PRD file (and CLAUDE.md updates), apply the git strategy:
 
 - **`none`**: No git operations.
 - **`main-only`**: Commit the PRD file on the current branch:
@@ -721,6 +652,5 @@ This will automatically select the next pending phase and create an implementati
 - **QUESTIONS_ACKNOWLEDGED**: Uncertainties are listed, not hidden
 - **TESTING_STRATEGY_DEFINED**: Unit, e2e, and integration testing approach established
 - **ACTIONABLE**: A skeptic could understand why this is worth building
-- **PLANE_TRACKED**: Work item created in Plane with module association (or explicitly skipped)
 - **NUMBERED**: PRD filename uses counter-based numbering from `.counters.json`
 - **VISION_LINKED**: If `--vision` provided, PRD includes Vision Reference section and vision's PRD Tracker is updated
