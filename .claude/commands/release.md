@@ -29,10 +29,10 @@ Check `$ARGUMENTS` for flags:
    - Unless `--no-stage` was passed, run `git add -A` to stage all uncommitted changes.
    - If `--no-stage` was passed, only stage the plugin file: `git add plugins/prp-core/.claude-plugin/plugin.json`
 
-5. **Commit** with the message format:
-   ```
-   chore: bump prp-core to v{new_version}
-   ```
+5. **Commit** with a descriptive message:
+   - Run `git diff --cached --stat` and `git diff --cached` to review staged changes.
+   - If the only change is the version bump in `plugin.json`, use: `chore: bump prp-core to v{new_version}`
+   - Otherwise, write a conventional commit message that summarizes the substantive changes (not the version bump). Append `(v{new_version})` to the end. Example: `feat: add release command and whats-next workflow (v3.2.0)`
 
 6. **Tag** the commit with the new version:
    ```
