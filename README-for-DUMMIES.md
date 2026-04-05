@@ -14,6 +14,7 @@ You give the AI a detailed plan with context and validation commands. The AI imp
 
 | Command          | What it does                                    |
 | ---------------- | ----------------------------------------------- |
+| `/prp-vision`    | Create a strategic vision (spans multiple PRDs) |
 | `/prp-prd`       | Create a PRD with implementation phases         |
 | `/prp-plan`      | Create an implementation plan                   |
 | `/prp-implement` | Execute a plan step-by-step with user oversight |
@@ -40,21 +41,48 @@ You give the AI a detailed plan with context and validation commands. The AI imp
 
 ## The Basic Flow
 
+### For Major Milestones (Optional Vision Layer)
+
+When your goal spans multiple PRDs — like "build a complete user onboarding experience" — start with a vision:
+
+```
+/prp-vision "complete user onboarding experience"
+    ↓
+Asks strategic questions (problem, outcomes, scope, success criteria)
+    ↓
+Creates vision doc in .claude/PRPs/visions/V001-user-onboarding.vision.md
+    ↓
+/prp-prd --vision .claude/PRPs/visions/V001-user-onboarding.vision.md "auth system"
+    ↓
+Creates PRD linked to vision (V001-PRD001-auth-system.prd.md)
+Vision's PRD Tracker auto-updates
+    ↓
+Continue creating more PRDs under the same vision...
+```
+
+A vision captures the "why behind the why" — the strategic layer that gives PRDs their direction. It's optional — you can still create standalone PRDs without a vision.
+
+**Key points:**
+- One active vision per project at a time
+- The vision's git strategy cascades to all PRDs under it
+- PRDs reference the vision by link (no content duplication)
+- When all PRDs are done, move the vision to `completed/`
+
 ### For Big Features
 
 ```
 /prp-prd "user authentication system"
     ↓
-Creates PRD with phases (stored in .claude/PRPs/prds/)
+Creates PRD with phases (stored in .claude/PRPs/prds/PRD001-user-auth.prd.md)
     ↓
-/prp-plan .claude/PRPs/prds/user-auth.prd.md
+/prp-plan .claude/PRPs/prds/PRD001-user-auth.prd.md
     ↓
 Creates implementation plan for next phase
     ↓
 Choose ONE execution path:
-  /prp-implement .claude/PRPs/plans/user-auth-phase-1.plan.md   ← step-by-step
-  /prp-ralph .claude/PRPs/plans/user-auth-phase-1.plan.md       ← autonomous
-  /build-with-agent-team .claude/PRPs/plans/user-auth-phase-1.plan.md  ← parallel (Opus)
+  /prp-implement .claude/PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md   ← step-by-step
+  /prp-ralph .claude/PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md       ← autonomous
+  /build-with-agent-team .claude/PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md  ← parallel (Opus)
     ↓
 Executes plan, updates PRD status, archives plan, commits per git strategy
     ↓
@@ -149,10 +177,28 @@ For manual git operations:
 
 ---
 
+## Artifact Numbering
+
+All artifacts get numbered for lineage and discoverability:
+
+```
+V001                    — Vision
+V001-PRD001             — PRD linked to vision V001
+V001-PRD001-P001        — Plan under that PRD
+PRD002                  — Standalone PRD (no vision)
+PRD002-P001             — Plan under standalone PRD
+```
+
+Numbers are global (never reset) and tracked in `.claude/PRPs/.counters.json`.
+
+---
+
 ## Where Stuff Gets Saved
 
 ```
 .claude/PRPs/
+├── visions/           # Vision documents
+│   └── completed/     # Archived completed visions
 ├── prds/              # PRD documents
 ├── plans/             # Implementation plans
 │   └── completed/     # Archived plans
@@ -164,6 +210,14 @@ For manual git operations:
 ---
 
 ## Quick Examples
+
+### "I have a big strategic goal"
+
+```bash
+/prp-vision "build a complete social engagement system"
+```
+
+This walks you through strategic questions and creates a vision that tracks multiple PRDs.
 
 ### "I have a rough idea"
 
@@ -223,10 +277,11 @@ Previous commands like `/prp-base-create`, `/prp-spec-create`, `/api-contract-de
 
 ## That's It
 
-1. Big feature? → `/prp-prd` → `/prp-plan` → `/prp-ralph` (or `/prp-implement` or `/build-with-agent-team`)
-2. Medium feature? → `/prp-plan` → pick any execution path
-3. GitHub issue? → `/prp-issue-investigate` → `/prp-issue-fix`
-4. Weird bug? → `/prp-debug "error message"`
-5. Done? → `/prp-commit` → `/prp-pr`
+1. Major milestone? → `/prp-vision` → `/prp-prd --vision` → `/prp-plan` → execute
+2. Big feature? → `/prp-prd` → `/prp-plan` → `/prp-ralph` (or `/prp-implement` or `/build-with-agent-team`)
+3. Medium feature? → `/prp-plan` → pick any execution path
+4. GitHub issue? → `/prp-issue-investigate` → `/prp-issue-fix`
+5. Weird bug? → `/prp-debug "error message"`
+6. Done? → `/prp-commit` → `/prp-pr`
 
 Happy building.
