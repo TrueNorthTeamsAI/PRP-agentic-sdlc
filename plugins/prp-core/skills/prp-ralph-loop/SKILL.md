@@ -142,12 +142,14 @@ Append to the state file's progress log (see Section 6).
 2. **Lint** - Must pass (code quality)
 3. **Tests** - Must pass (functionality verification)
 4. **Build** - Must pass (deployment readiness)
+5. **E2E / User Journeys** - Must pass if applicable (end-to-end verification)
 
 ### What Counts as "Passing"
 
 - Exit code 0
 - No errors in output
 - Warnings are acceptable (but note them)
+- For e2e/journeys: all automated journey validation scripts or e2e tests exit 0. Manual journeys are non-blocking.
 
 ### Common Validation Failures and Fixes
 
@@ -157,6 +159,7 @@ Append to the state file's progress log (see Section 6).
 | Lint error | Formatting, unused var | Run auto-fix, remove unused code |
 | Test failure | Logic bug, missing mock | Fix logic, add proper mocks |
 | Build error | Missing dependency | Install dependency, fix imports |
+| Journey/e2e failure | Logic bug, wrong endpoint, missing data | Fix implementation, update seed data, re-run |
 
 ---
 
@@ -170,6 +173,15 @@ Append to the state file's progress log (see Section 6).
 
 This exact string signals that the Ralph loop should end.
 
+### Before Outputting the Completion Signal
+
+Before signaling completion, you MUST run the completion protocol from the `prp-ralph` command:
+
+1. **Update Source PRD** — Find the source PRD (from plan metadata, inline reference, or directory scan). Update the phase status from `in-progress` to `complete`. If all PRD phases are now complete, archive the PRD to `.claude/PRPs/prds/completed/`.
+2. **Archive the plan** to `.claude/PRPs/plans/completed/`
+3. **Run git operations** per the PRD's git strategy
+4. **Clean up state** — remove `.claude/prp-ralph.state.md`
+
 ### When to Output the Completion Signal
 
 Output `<promise>COMPLETE</promise>` ONLY when ALL of these are true:
@@ -179,7 +191,9 @@ Output `<promise>COMPLETE</promise>` ONLY when ALL of these are true:
 3. **Lint passes** - Zero lint errors
 4. **Tests pass** - All tests green
 5. **Build passes** - Successful build (if applicable)
-6. **Changes committed** - All work committed to git
+6. **Journey/e2e validation passes** - All automated journeys pass (if plan has User Journeys)
+7. **Changes committed** - All work committed to git
+8. **Source PRD updated** - Phase status set to `complete` (if PRD exists)
 
 ### When NOT to Output the Completion Signal
 
@@ -384,8 +398,12 @@ This skill is **not user-invoked**. It provides the knowledge Claude needs durin
 - [ ] Run lint
 - [ ] Run tests
 - [ ] Run build (if applicable)
+- [ ] Run journey/e2e validation (if applicable)
 - [ ] Commit changes
 - [ ] Update progress log
+- [ ] If completing: update source PRD phase status to `complete`
+- [ ] If completing: check if all PRD phases done → archive PRD
+- [ ] If completing: archive plan to completed folder
 - [ ] Decide: complete or continue
 
 ### Validation Commands (Common)
@@ -395,6 +413,9 @@ npm run type-check && npm run lint && npm test && npm run build
 
 # Python
 uv run ruff check && uv run mypy . && uv run pytest
+
+# Journey/E2E (if plan has How to Execute + User Journeys)
+# Setup → run e2e or validation scripts → teardown
 ```
 
 ### Progress Log Template
@@ -409,6 +430,7 @@ uv run ruff check && uv run mypy . && uv run pytest
 - Lint: PASS/FAIL
 - Tests: PASS/FAIL
 - Build: PASS/FAIL
+- Journeys: PASS/FAIL/N/A
 
 ### Learnings
 - [Patterns, gotchas, context]

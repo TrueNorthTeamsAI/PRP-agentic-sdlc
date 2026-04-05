@@ -66,7 +66,23 @@ Locate and understand:
 - **Files to Change** - CREATE/UPDATE list
 - **Step-by-Step Tasks** - Implementation order
 - **Validation Commands** - How to verify (USE THESE, not hardcoded commands)
+- **User Journeys** - Journey files and impact classification (if present)
+- **How to Execute** - Start/seed/ready/teardown commands (if present)
+- **E2E Tests to Write** - E2E test files to generate (if present)
 - **Acceptance Criteria** - Definition of done
+- **Plane Tracking** - Project identifier, module ID, plan work item ID (if present)
+
+### 1.3 Plane Tracking — Create Work Item (silent)
+
+**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+Read `Plane Strategy` from the plan's `## Metadata` table. If `integrated`:
+
+1. Call plane-track: action=`create`, type=`Implement`, title=`{Feature Name}`, project_identifier=`{from plan}`, module_id=`{from plan}`, description=`Implementing plan: {plan file path}`, priority=`medium`
+2. Store the returned `work_item_id` for status update at completion
+3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
+
+If `Plane Strategy` is `none` or missing, skip all Plane operations silently. If Plane MCP is unavailable, skip silently.
 
 ### 1.3 Validate Plan Exists
 
@@ -224,6 +240,20 @@ Common patterns:
 4. Re-run tests
 5. Repeat until green
 
+### 4.2.1 E2E Test Generation
+
+**If the plan has an `## E2E Tests to Write` table:**
+
+1. Read each journey file referenced in the table
+2. Generate e2e test files using the project's e2e framework patterns:
+   - Read existing e2e tests for pattern reference
+   - Translate journey steps into test assertions
+   - Use the e2e config from CLAUDE.md (framework, test directory, conventions)
+3. Place test files in the e2e directory specified by the project config
+4. Run the e2e test command to verify they compile/parse correctly (tests may fail if services aren't running — that's OK at this stage)
+
+**If no `## E2E Tests to Write` table:** Skip this step — journey validation scripts handle e2e coverage.
+
 ### 4.3 Build Check
 
 **Run the build command from the plan's Validation Commands section.**
@@ -258,6 +288,43 @@ kill $SERVER_PID
 
 Run any edge case tests specified in the plan.
 
+### 4.6 Journey / E2E Validation
+
+**Prerequisite**: Phases 4.1-4.3 must ALL pass first. No point testing journeys against broken code.
+
+**If plan has `## How to Execute` section:**
+
+1. **Setup**: Run the commands from "How to Execute":
+   - Start Services
+   - Seed Data / Reset State
+   - Verify Ready (wait for health check to pass)
+
+2. **Run validation:**
+
+   **If e2e framework configured** (plan has `## E2E Tests to Write`):
+   ```bash
+   {e2e run command from CLAUDE.md, e.g., npx playwright test}
+   ```
+
+   **If no e2e framework** (validation scripts only):
+   - For each journey listed as **Automated** in the plan's `## User Journeys`:
+     - Read the journey file
+     - Extract the `## Validation Script` section
+     - Execute the script
+     - Log PASS/FAIL
+
+3. **Teardown**: Run the teardown commands from "How to Execute"
+
+4. **If validation fails:**
+   - Read the failure output
+   - Fix the implementation (not the test/script unless it's wrong)
+   - Re-run setup → validation → teardown
+   - Repeat until passing
+
+**Manual journeys**: Log as "requires manual verification" in the report. Non-blocking.
+
+**If plan has no `## How to Execute` section:** Skip this step entirely.
+
 **PHASE_4_CHECKPOINT:**
 
 - [ ] Type-check passes (command from plan)
@@ -265,6 +332,7 @@ Run any edge case tests specified in the plan.
 - [ ] Tests pass (all green)
 - [ ] Build succeeds
 - [ ] Integration tests pass (if applicable)
+- [ ] Journey / e2e validation passes (if applicable)
 
 ---
 
@@ -362,8 +430,58 @@ Compare the original investigation's assessment with what actually happened:
 
 ---
 
+## Journey / E2E Validation
+
+| Journey | Type | Result | Notes |
+|---------|------|--------|-------|
+| `.claude/user-journeys/{name}.md` | Automated | ✅/❌ | {details} |
+| `.claude/user-journeys/{name}.md` | Manual | ⏭️ | Requires manual verification |
+
+**E2E Tests Generated**:
+| Test File | Journey Source | Status |
+|-----------|---------------|--------|
+| `e2e/{name}.spec.ts` | `.claude/user-journeys/{name}.md` | ✅/❌ |
+
+_Omit this section if no user journeys in the plan._
+
+---
+
+## Manual Testing
+
+Step-by-step instructions to manually run and verify what was implemented.
+
+### Prerequisites
+
+{List anything needed before testing — running services, environment variables, seed data, etc.}
+
+### Steps to Test
+
+1. {Start the application / run the relevant service}
+   ```bash
+   {command to start, e.g., npm run dev, uv run uvicorn main:app}
+   ```
+
+2. {How to exercise the new functionality}
+   ```bash
+   {command, URL to visit, UI action, API call, etc.}
+   ```
+
+3. {Expected result — what the tester should see}
+
+4. {Any additional scenarios or edge cases to verify}
+
+### Expected Behavior
+
+| Scenario | Action | Expected Result |
+|----------|--------|-----------------|
+| {Happy path} | {What to do} | {What should happen} |
+| {Edge case} | {What to do} | {What should happen} |
+
+---
+
 ## Next Steps
 
+- [ ] Manual testing (follow steps above)
 - [ ] Review implementation
 - [ ] Create PR: `gh pr create` (if applicable)
 - [ ] Merge when approved
@@ -371,30 +489,79 @@ Compare the original investigation's assessment with what actually happened:
 
 ### 5.3 Update Source PRD (if applicable)
 
-**Check if plan was generated from a PRD:**
-- Look in the plan file for `Source PRD:` reference
-- Or check if plan filename matches a phase pattern
+**Check if plan was generated from a PRD (try each method in order):**
 
-**If PRD source exists:**
+1. **Metadata table**: Look for `Source PRD` row in the plan's `## Metadata` table
+2. **Inline reference**: Search the plan file for `Source PRD:` text anywhere
+3. **PRD directory scan**: If neither found, scan `.claude/PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
+
+**If PRD source found by any method:**
 
 1. Read the PRD file
-2. Find the phase row in the Implementation Phases table
+2. Find the matching phase row in the Implementation Phases table (match by plan path, phase name, or feature name)
 3. Update the phase:
    - Change Status from `in-progress` to `complete`
 4. Save the PRD
 
-### 5.4 Archive Plan
+**If no PRD source found after all methods**: Log a warning to the user: "No source PRD found — skipping PRD status update. To link manually, add `| Source PRD | path/to/file.prd.md |` to the plan's Metadata table."
+
+**Check if ALL PRD phases are now complete:**
+
+If a PRD was found and updated, re-read the PRD's Implementation Phases table. If every phase has Status `complete`:
+1. Archive the PRD to the completed folder:
+   ```bash
+   mkdir -p .claude/PRPs/prds/completed
+   mv {prd_path} .claude/PRPs/prds/completed/
+   ```
+2. Log: "All PRD phases complete — PRD archived to `.claude/PRPs/prds/completed/`"
+
+### 5.4 Plane Tracking — Update Status (silent)
+
+If `Plane Strategy` is `integrated` and an Implement work item was created in Phase 1.3:
+
+1. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
+2. If Plane MCP is unavailable, skip silently
+
+### 5.5 Archive Plan
 
 ```bash
 mkdir -p .claude/PRPs/plans/completed
 mv $ARGUMENTS .claude/PRPs/plans/completed/
 ```
 
+### 5.6 Git Operations
+
+**Determine git strategy**: If a source PRD was found in step 5.3, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if no PRD or field is missing. If no PRD exists, ask the user which strategy to use.
+
+- **`none`**: Skip all git operations. Do not stage or commit.
+- **`main-only`**: Commit on current branch and push:
+  ```bash
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  git push -u origin HEAD
+  ```
+- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit and push:
+  ```bash
+  git checkout feat/{prd-kebab-name}  # if not already on it
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  git push -u origin HEAD
+  ```
+- **`branch-per-phase`**: Should already be on the phase branch (created by prp-plan). Verify, then commit and push:
+  ```bash
+  git add -A
+  git commit -m "feat: implement {feature-name}"
+  git push -u origin HEAD
+  ```
+
+Use the conventional commit type that best matches the work (feat, fix, refactor, etc.).
+
 **PHASE_5_CHECKPOINT:**
 
 - [ ] Report created at `.claude/PRPs/reports/`
 - [ ] PRD updated (if applicable) - phase marked complete
 - [ ] Plan moved to completed folder
+- [ ] Git operations executed per strategy (or skipped if `none`)
 
 ---
 
@@ -416,6 +583,7 @@ mv $ARGUMENTS .claude/PRPs/plans/completed/
 | Lint       | ✅              |
 | Tests      | ✅ ({N} passed) |
 | Build      | ✅              |
+| Journeys   | ✅/⏭️ ({N} auto, {M} manual) |
 
 ### Files Changed
 
@@ -504,5 +672,7 @@ To continue: `/prp-plan {prd-path}`
 - **LINT_PASS**: Lint command exits 0 (warnings OK)
 - **TESTS_PASS**: Test command all green
 - **BUILD_PASS**: Build command succeeds
+- **JOURNEYS_VALIDATED**: E2E tests or validation scripts pass (if applicable)
 - **REPORT_CREATED**: Implementation report exists
 - **PLAN_ARCHIVED**: Original plan moved to completed
+- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)

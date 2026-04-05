@@ -1,7 +1,7 @@
 {
   "name": "prp-core",
-  "version": "2.3.1",
-  "description": "Complete PRP workflow automation - plan, implement, debug, review, commit, and PR commands with specialized agents",
+  "version": "2.6.0",
+  "description": "Complete PRP workflow automation - plan, implement, debug, review, commit, PR, and context management commands with specialized agents",
   "author": {
     "name": "Wirasm",
     "email": "hello@rasmuswiding.com"

@@ -65,10 +65,23 @@ If input is a `.prd.md` file:
 4. Report which phase will be executed
 5. Note: The loop will create and execute a plan for this phase
 
+### 1.5 Plane Tracking — Create Work Item (silent)
+
+**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+Read `Plane Strategy` from the plan's `## Metadata` table (or source PRD's Technical Approach). If `integrated`:
+
+1. Call plane-track: action=`create`, type=`Ralph`, title=`{Feature Name}`, project_identifier=`{from plan}`, module_id=`{from plan}`, description=`Ralph loop executing plan: {file_path}`, priority=`medium`
+2. Store the returned `work_item_id` for status update at completion
+3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
+
+If `Plane Strategy` is `none` or missing, skip all Plane operations silently. If Plane MCP is unavailable, skip silently.
+
 **PHASE_1_CHECKPOINT:**
 - [ ] Input parsed (file path + max iterations)
 - [ ] File exists and is valid type
 - [ ] If PRD: next phase identified
+- [ ] Plane work item created (or skipped)
 
 ---
 
@@ -193,6 +206,23 @@ bun test || npm test
 bun run build || npm run build
 ```
 
+**If plan has `## How to Execute` and `## User Journeys`:**
+
+After the above validations pass, run journey/e2e validation:
+
+1. Run setup from "How to Execute" (Start Services → Seed Data → Verify Ready)
+2. **If e2e framework configured**: Run e2e test command (from CLAUDE.md)
+3. **If no e2e framework**: Extract and run each automated journey's Validation Script
+4. Run teardown from "How to Execute"
+
+```bash
+# Example e2e validation
+{start services from How to Execute}
+{verify ready}
+{e2e run command, e.g., npx playwright test}
+{teardown}
+```
+
 ### 3.5 Track Results
 
 | Check | Result | Notes |
@@ -201,6 +231,7 @@ bun run build || npm run build
 | Lint | PASS/FAIL | {details} |
 | Tests | PASS/FAIL | {details} |
 | Build | PASS/FAIL | {details} |
+| Journeys | PASS/FAIL/N/A | {details} |
 
 ### 3.6 If Any Validation Fails
 
@@ -232,6 +263,7 @@ Append to Progress Log section using this format:
 - Lint: PASS/FAIL
 - Tests: PASS/FAIL ({X/Y passing})
 - Build: PASS/FAIL
+- Journeys: PASS/FAIL/N/A ({details})
 
 ### Learnings
 - {Pattern discovered: "this codebase uses X for Y"}
@@ -279,6 +311,7 @@ ALL of these must be true:
 - [ ] Lint passes (0 errors)
 - [ ] Tests pass
 - [ ] Build succeeds
+- [ ] Journey / e2e validation passes (if applicable)
 - [ ] All acceptance criteria met
 
 ### 4.2 If ALL Pass - Complete the Loop
@@ -307,6 +340,7 @@ ALL of these must be true:
    | Lint | PASS |
    | Tests | PASS |
    | Build | PASS |
+   | Journeys | PASS / N/A |
 
    ## Codebase Patterns Discovered
    {From state file Codebase Patterns section}
@@ -318,7 +352,13 @@ ALL of these must be true:
    {Any changes made}
    ```
 
-2. **Archive the Ralph Run**
+2. **Plane Tracking — Update Status (silent)**
+
+   If `Plane Strategy` is `integrated` and a Ralph work item was created in Phase 1.5:
+   - Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
+   - If Plane MCP is unavailable, skip silently
+
+3. **Archive the Ralph Run**
 
    ```bash
    # Create archive directory
@@ -352,20 +392,73 @@ ALL of these must be true:
    - {Pattern that should be permanent}
    ```
 
-4. **Archive Plan to Completed**
+4. **Update Source PRD (if applicable)**
+
+   Check if the plan was generated from a PRD (try each method in order):
+
+   1. **Metadata table**: Look for `Source PRD` row in the plan's `## Metadata` table
+   2. **Inline reference**: Search the plan file for `Source PRD:` text anywhere
+   3. **PRD directory scan**: If neither found, scan `.claude/PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
+
+   If PRD source found by any method:
+   1. Read the PRD file
+   2. Find the matching phase row in the Implementation Phases table (match by plan path, phase name, or feature name)
+   3. Update the phase: Change Status from `in-progress` to `complete`
+   4. Save the PRD
+
+   If no PRD source found after all methods: Log a warning to the user: "No source PRD found — skipping PRD status update. To link manually, add `| Source PRD | path/to/file.prd.md |` to the plan's Metadata table."
+
+   **Check if ALL PRD phases are now complete:**
+
+   If a PRD was found and updated, re-read the PRD's Implementation Phases table. If every phase has Status `complete`:
+   1. Archive the PRD to the completed folder:
+      ```bash
+      mkdir -p .claude/PRPs/prds/completed
+      mv {prd_path} .claude/PRPs/prds/completed/
+      ```
+   2. Log: "All PRD phases complete — PRD archived to `.claude/PRPs/prds/completed/`"
+
+5. **Archive Plan to Completed**
 
    ```bash
    mkdir -p .claude/PRPs/plans/completed
    mv {plan_path} .claude/PRPs/plans/completed/
    ```
 
-5. **Clean Up State**
+6. **Git Operations**
+
+   **Determine git strategy**: If a source PRD was found in step 4, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if no PRD or field is missing.
+
+   - **`none`**: Skip all git operations. Do not stage or commit.
+   - **`main-only`**: Commit on current branch and push:
+     ```bash
+     git add -A
+     git commit -m "feat: implement {feature-name}"
+     git push -u origin HEAD
+     ```
+   - **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit and push:
+     ```bash
+     git checkout feat/{prd-kebab-name}  # if not already on it
+     git add -A
+     git commit -m "feat: implement {feature-name}"
+     git push -u origin HEAD
+     ```
+   - **`branch-per-phase`**: Should already be on the phase branch (created by prp-plan). Verify, then commit and push:
+     ```bash
+     git add -A
+     git commit -m "feat: implement {feature-name}"
+     git push -u origin HEAD
+     ```
+
+   Use the conventional commit type that best matches the work (feat, fix, refactor, etc.).
+
+7. **Clean Up State**
 
    ```bash
    rm .claude/prp-ralph.state.md
    ```
 
-6. **Output Completion Promise**
+8. **Output Completion Promise**
 
    ```
    <promise>COMPLETE</promise>
@@ -444,9 +537,10 @@ cat .claude/PRPs/ralph-archives/2024-01-12-feature-name/learnings.md
 ## Success Criteria
 
 - **PLAN_EXECUTED**: All tasks from plan completed
-- **VALIDATIONS_PASS**: All validation commands succeed
+- **VALIDATIONS_PASS**: All validation commands succeed (including journey/e2e if applicable)
 - **REPORT_GENERATED**: Implementation report created
 - **LEARNINGS_CAPTURED**: Progress log has useful insights
 - **PATTERNS_CONSOLIDATED**: Reusable patterns extracted
 - **ARCHIVE_CREATED**: Full run archived for future reference
 - **CLEAN_EXIT**: Completion promise output only when genuinely complete
+- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)

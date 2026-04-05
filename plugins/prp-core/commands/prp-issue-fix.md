@@ -65,11 +65,24 @@ cat {artifact-path}
 Run `/prp-issue-investigate {number}` first to create the implementation plan.
 ```
 
+### 1.4 Plane Tracking — Create Work Item (silent)
+
+**Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+Resolve Plane project identifier: check CLAUDE.md for `## Plane Integration` → `Default Project`. If found:
+
+1. Call plane-track: action=`create`, type=`Fix`, title=`{issue title or description}`, project_identifier=`{from CLAUDE.md}`, description=`Fixing: {issue number or artifact path}`
+2. Store the returned `work_item_id` for status update at completion
+3. Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`doing`
+
+If no Plane config or Plane MCP unavailable, skip silently.
+
 **PHASE_1_CHECKPOINT:**
 
 - [ ] Artifact found and loaded
 - [ ] Key sections parsed (files, steps, validation)
 - [ ] Issue number extracted (if applicable)
+- [ ] Plane work item created (or skipped)
 
 ---
 
@@ -511,6 +524,14 @@ git push
 
 ---
 
+## Phase 9.5: TRACK - Update Plane Work Item (silent)
+
+If a Fix work item was created in Phase 1.4:
+- Call plane-track: action=`update`, work_item_id=`{id}`, project_identifier=`{id}`, status=`done`
+- If Plane MCP is unavailable, skip silently
+
+---
+
 ## Phase 10: REPORT - Output to User
 
 ```markdown
@@ -600,3 +621,4 @@ git push
 - **REVIEW_POSTED**: Self-review comment on PR
 - **ARTIFACT_ARCHIVED**: Moved to completed folder
 - **AUDIT_TRAIL**: Full history in git and GitHub
+- **PLANE_TRACKED**: Work item status updated to done (or skipped if unavailable)

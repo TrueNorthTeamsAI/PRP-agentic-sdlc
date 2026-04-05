@@ -32,6 +32,23 @@ Each question set builds on previous answers. Grounding phases validate assumpti
 
 ---
 
+## Phase 0.5: ARGUMENT PARSING - Vision and Input
+
+**Check if `$ARGUMENTS` contains `--vision {path}`:**
+
+1. If `--vision` is present, extract the vision file path and strip it from the remaining arguments.
+2. Read the vision file to extract:
+   - **Vision ID**: from filename (e.g., `V001` from `V001-user-onboarding.vision.md`)
+   - **Vision Title**: from the `# {title}` heading
+   - **Git Strategy**: from the `## Git Strategy` section (the value after `**Strategy**: \``)
+   - **Section headings**: for building anchor links in the Vision Reference table
+3. Store `VISION_PATH`, `VISION_ID`, `VISION_TITLE`, and `VISION_GIT_STRATEGY` for use in later phases.
+4. The remaining text after stripping `--vision {path}` is the feature description (same as today).
+
+**If `--vision` is NOT present**: Proceed as normal. `VISION_PATH` is empty.
+
+---
+
 ## Phase 1: INITIATE - Core Problem
 
 **If no input provided**, ask:
@@ -69,6 +86,16 @@ Ask these questions (present all at once, user can answer together):
 ---
 
 ## Phase 3: GROUNDING - Market & Context Research
+
+### 3.0 Load External Context (Automatic, Silent)
+
+Before launching research agents, check if `context-map.md` exists in the project (search current dir, then walk up parent directories).
+
+**If found:** Match entries against the product/feature idea and key terms from the user's foundation answers. Resolve and read sources silently using the `context-read` skill logic (see `plugins/prp-core/skills/context-read/SKILL.md`). Include loaded content as additional input for the grounding phase — domain knowledge, architecture decisions, and reference material can inform the PRD.
+
+**If not found or no matches:** Proceed normally. This step is optional.
+
+### 3.1 Research
 
 After foundation answers, conduct research using specialized agents:
 
@@ -146,6 +173,12 @@ LOCATE:
 2. Similar patterns already implemented
 3. Integration points and dependencies
 4. Relevant configuration and type definitions
+5. Testing setup:
+   - Unit test framework and patterns (jest, vitest, pytest, etc.)
+   - E2E test framework configs (playwright.config.*, cypress.config.*, etc.)
+   - E2E test directories (e2e/, tests/e2e/, cypress/e2e/)
+   - Test-related scripts in package.json / pyproject.toml
+   - Existing CLAUDE.md testing sections
 
 Return file locations, code patterns, and conventions observed.
 ```
@@ -205,6 +238,22 @@ Ask final clarifying questions:
 > 4. **Out of Scope**: What are you explicitly NOT building (even if users ask)?
 >
 > 5. **Open Questions**: What uncertainties could change the approach?
+>
+> 6. **Git Strategy**: How should we handle branching for this project?
+>    - `none` — No git operations (you manage git manually)
+>    - `main-only` — All work on current branch, auto-commit after each step
+>    - `branch-per-prd` — One feature branch for the whole PRD, all phases commit there
+>    - `branch-per-phase` — Separate branch per implementation phase
+
+**If `VISION_PATH` is set**: Pre-fill the git strategy question from the vision's git strategy. Map vision strategies to PRD strategies: `none`→`none`, `prd`→`branch-per-prd`, `plan`→`branch-per-phase`. Present the mapped value as the default:
+
+> *Based on the parent vision's git strategy (`{VISION_GIT_STRATEGY}`), the default is `{mapped-strategy}`. Press enter to accept or choose a different strategy.*
+
+The user can still override.
+>
+> 7. **Plane Strategy**: Should we track work items in Plane?
+>    - `none` — No Plane tracking
+>    - `integrated` — Track in Plane (provide project identifier and module name)
 
 **GATE**: Wait for user responses before generating.
 
@@ -212,11 +261,41 @@ Ask final clarifying questions:
 
 ## Phase 7: GENERATE - Write PRD
 
-**Output path**: `.claude/PRPs/prds/{kebab-case-name}.prd.md`
+### 7.0 Numbering and Filename
+
+1. Read `.claude/PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
+2. Increment the `prd` counter by 1.
+3. Write updated counters back to `.claude/PRPs/.counters.json` (use Write tool).
+4. Zero-pad the new number to 3 digits (e.g., `3` → `003`).
+5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
+
+**Generate filename:**
+- If `VISION_PATH` is set (vision-linked): `V{VNN}-PRD{NNN}-{kebab-case-name}.prd.md` (e.g., `V001-PRD003-auth-middleware.prd.md`)
+- If standalone (no vision): `PRD{NNN}-{kebab-case-name}.prd.md` (e.g., `PRD004-search-api.prd.md`)
+
+**Output path**: `.claude/PRPs/prds/{numbered-filename}`
 
 Create directory if needed: `mkdir -p .claude/PRPs/prds`
 
 ### PRD Template
+
+**If `VISION_PATH` is set**, insert a `## Vision Reference` section immediately after the PRD title:
+
+```markdown
+## Vision Reference
+
+| Field | Value |
+|-------|-------|
+| Vision | [{VISION_ID} — {VISION_TITLE}]({relative-path-to-vision-file}) |
+| Problem | [Problem / Opportunity]({relative-path-to-vision-file}#problem--opportunity) |
+| Objectives | [Objectives]({relative-path-to-vision-file}#objectives) |
+| Success Criteria | [Success Criteria]({relative-path-to-vision-file}#success-criteria) |
+| Scope | [Scope Boundaries]({relative-path-to-vision-file}#scope-boundaries) |
+```
+
+Anchors use GitHub-style slugs: lowercase, spaces→hyphens, strip special chars (e.g., `Problem / Opportunity` → `#problem--opportunity`). The relative path goes from the PRD's location (`.claude/PRPs/prds/`) to the vision file (`.claude/PRPs/visions/`), typically `../visions/{vision-filename}`.
+
+**If `VISION_PATH` is NOT set**, omit the Vision Reference section entirely.
 
 ```markdown
 # {Product/Feature Name}
@@ -305,11 +384,37 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 - {Key technical decision and why}
 - {Dependency or integration point}
 
+**Git Strategy**: {none | main-only | branch-per-prd | branch-per-phase}
+
+**Plane Strategy**: {none | integrated}
+
 **Technical Risks**
 
 | Risk | Likelihood | Mitigation |
 |------|------------|------------|
 | {Risk} | {H/M/L} | {How to handle} |
+
+---
+
+## Testing Strategy
+
+### Unit Testing
+- **Framework**: {jest | vitest | pytest | go test | cargo test | etc.}
+- **Location**: {tests/ | src/**/*.test.ts | etc.}
+- **Run**: `{test command}`
+
+### E2E Testing
+- **Framework**: {Playwright | Cypress | none | TBD}
+- **Config**: `{path to config file, or "N/A"}`
+- **Test directory**: `{e2e/ | tests/e2e/ | etc.}`
+- **Run command**: `{npx playwright test | npx cypress run | etc.}`
+- **Approach**: {Brief description of e2e testing approach}
+
+_If no e2e framework: user journey validation scripts (bash) will be used instead._
+
+### Integration Testing
+- **Approach**: {API tests, service tests, etc.}
+- **Run**: `{command}`
 
 ---
 
@@ -368,9 +473,159 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 
 ---
 
+## Plane Tracking
+
+<!--
+  Populated by the PRD generator. Downstream commands (prp-plan, prp-implement, etc.)
+  read this section to associate their work items with the correct Plane module.
+  If Plane tracking was skipped, this section will say "Skipped".
+-->
+
+| Field | Value |
+|-------|-------|
+| Project | {project_identifier or "Skipped"} |
+| Module | {module_name or "Skipped"} |
+| Module ID | {module_id or "N/A"} |
+| PRD Work Item | {work_item_identifier or "N/A"} |
+| PRD Work Item ID | {work_item_id or "N/A"} |
+
+---
+
 *Generated: {timestamp}*
 *Status: DRAFT - needs validation*
 ```
+
+---
+
+## Phase 7.25: TRACK - Create Plane Work Items
+
+**This phase runs silently after generating the PRD. Uses `plane-track` skill logic (see `plugins/prp-core/skills/plane-track/SKILL.md`).**
+
+**Skip this phase if the Plane Strategy is `none`.**
+
+### 7.25.1 Resolve or Create Module
+
+If the user chose `integrated` for Plane Strategy and provided a project identifier and module name:
+
+1. Call Plane MCP `list_projects` to find the project by identifier. Extract `project_id`.
+2. Call Plane MCP `list_modules` for that project. Search for matching module name.
+3. **If module exists**: Use its `module_id`.
+4. **If module does not exist**: Call Plane MCP `create_module` with the user's module name. Use the returned `module_id`.
+
+**If Plane MCP is unavailable**: Set all Plane Tracking fields in the PRD to "N/A" and proceed. Log: "Plane MCP not available. Skipping work item tracking."
+
+### 7.25.2 Create PRD Work Item
+
+Using `plane-track` skill logic:
+- action: `create`
+- type: `PRD`
+- title: `{Product/Feature Name}` (from the PRD title)
+- project_identifier: `{from user input}`
+- module_id: `{from step 7.25.1}`
+- description: `{Problem Statement from PRD}`
+- priority: `medium`
+
+### 7.25.3 Update PRD File
+
+Edit the `## Plane Tracking` table in the generated PRD file with the actual values:
+- Project identifier
+- Module name and ID
+- Work item identifier (e.g., `PROJ-42`) and ID
+
+**PHASE_7.25_CHECKPOINT:**
+- [ ] Plane project resolved (or skipped)
+- [ ] Module resolved or created (or skipped)
+- [ ] PRD work item created and added to module (or skipped)
+- [ ] PRD file updated with Plane Tracking metadata
+
+**GATE**: No user interaction needed. This is automatic.
+
+---
+
+## Phase 7.1: VISION TRACKER - Update Parent Vision
+
+**Skip this phase if `VISION_PATH` is not set.**
+
+If this PRD was created under a vision (`--vision` was provided):
+
+1. Read the vision file at `VISION_PATH`
+2. Find the `## PRD Tracker` table
+3. Count existing data rows to determine the next row number
+4. Use the **Edit** tool to append a new row to the tracker table:
+   ```
+   | {next-row-#} | {PRD-name} | {description} | pending | - | - | [{PRD-ID}]({relative-path-to-prd}) |
+   ```
+   Where:
+   - `{next-row-#}` is the next sequential row number
+   - `{PRD-name}` is the product/feature name from the PRD
+   - `{description}` is a one-line description of what the PRD delivers
+   - `{PRD-ID}` is the numbered PRD identifier (e.g., `V001-PRD003`)
+   - `{relative-path-to-prd}` is the path from the vision file to the PRD file (typically `../prds/{prd-filename}`)
+
+5. If the tracker table contains the template placeholder row (`| 1 | {PRD name} |`), replace it with the actual PRD row instead of appending.
+
+**GATE**: No user interaction needed. This is automatic.
+
+---
+
+## Phase 7.5: PERSIST - Update CLAUDE.md with Testing Config
+
+After generating the PRD, check if the project has a `CLAUDE.md` file. If it does, and the testing strategy includes e2e framework information not already documented there, update `CLAUDE.md` with a `## Testing` section (or update the existing one).
+
+**Steps:**
+
+1. Read the project's `CLAUDE.md` (if it exists)
+2. Check if it already has `## Testing` or `## E2E Testing` section
+3. If e2e config was discovered and isn't already in CLAUDE.md, append:
+
+```markdown
+## Testing
+
+### Unit Tests
+- **Framework**: {framework}
+- **Run**: `{command}`
+
+### E2E Tests
+- **Framework**: {framework}
+- **Config**: `{config path}`
+- **Test directory**: `{directory}`
+- **Run**: `{command}`
+```
+
+4. If CLAUDE.md already has testing info, verify it's current and update if stale
+5. If no CLAUDE.md exists, skip this step — don't create one just for testing config
+
+**Why**: This ensures all future plans, agents, and Ralph loops know the project's testing setup without re-discovering it every time.
+
+**GATE**: No user interaction needed. This is automatic.
+
+---
+
+## Phase 7.75: GIT - Apply Git Strategy
+
+After generating the PRD file (and Plane tracking / CLAUDE.md updates), apply the git strategy:
+
+- **`none`**: No git operations.
+- **`main-only`**: Commit the PRD file on the current branch:
+  ```bash
+  git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
+  git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
+  ```
+- **`branch-per-prd`**: Create a feature branch and commit:
+  ```bash
+  git checkout -b feat/{PRD-ID}-{prd-kebab-name}
+  git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
+  git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
+  ```
+- **`branch-per-phase`**: Commit on current branch (phase branches created later by prp-plan):
+  ```bash
+  git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
+  git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
+  ```
+
+If `VISION_PATH` is set, also `git add` the updated vision file (for PRD Tracker changes).
+
+**GATE**: No user interaction needed. This is automatic.
 
 ---
 
@@ -381,7 +636,8 @@ After generating, report:
 ```markdown
 ## PRD Created
 
-**File**: `.claude/PRPs/prds/{name}.prd.md`
+**File**: `.claude/PRPs/prds/{numbered-name}.prd.md`
+**PRD ID**: {PRD-ID} (e.g., V001-PRD003 or PRD004)
 
 ### Summary
 
@@ -396,6 +652,7 @@ After generating, report:
 | Problem Statement | {Validated/Assumption} |
 | User Research | {Done/Needed} |
 | Technical Feasibility | {Assessed/TBD} |
+| Testing Strategy | {Defined/TBD} |
 | Success Metrics | {Defined/Needs refinement} |
 
 ### Open Questions ({count})
@@ -414,7 +671,7 @@ After generating, report:
 
 ### To Start Implementation
 
-Run: `/prp-plan .claude/PRPs/prds/{name}.prd.md`
+Run: `/prp-plan .claude/PRPs/prds/{numbered-name}.prd.md`
 
 This will automatically select the next pending phase and create an implementation plan.
 ```
@@ -462,4 +719,8 @@ This will automatically select the next pending phase and create an implementati
 - **HYPOTHESIS_CLEAR**: Testable hypothesis with measurable outcome
 - **SCOPE_BOUNDED**: Clear must-haves and explicit out-of-scope
 - **QUESTIONS_ACKNOWLEDGED**: Uncertainties are listed, not hidden
+- **TESTING_STRATEGY_DEFINED**: Unit, e2e, and integration testing approach established
 - **ACTIONABLE**: A skeptic could understand why this is worth building
+- **PLANE_TRACKED**: Work item created in Plane with module association (or explicitly skipped)
+- **NUMBERED**: PRD filename uses counter-based numbering from `.counters.json`
+- **VISION_LINKED**: If `--vision` provided, PRD includes Vision Reference section and vision's PRD Tracker is updated

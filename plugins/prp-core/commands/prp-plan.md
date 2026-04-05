@@ -61,12 +61,23 @@ Discover the actual structure before proceeding.
 
 4. **Extract phase context:**
    ```
+   SOURCE_PRD: {path to the PRD file}
+   GIT_STRATEGY: {from PRD's "Git Strategy" field, default "main-only" if not specified}
+   PLANE_STRATEGY: {from PRD's "Plane Strategy" field, default "none" if not specified}
    PHASE: {phase number and name}
    GOAL: {from phase details}
    SCOPE: {from phase details}
    SUCCESS SIGNAL: {from phase details}
    PRD CONTEXT: {problem statement, user, hypothesis from PRD}
    ```
+
+   **IMPORTANT**: Carry `SOURCE_PRD` and `PHASE` into the plan's Metadata table (Phase 6) as `Source PRD` and `PRD Phase` fields.
+
+5. **Extract Plane Tracking** (if `PLANE_STRATEGY` is `integrated`):
+   - Parse the `## Plane Tracking` section from the PRD
+   - Extract: `project_identifier`, `module_name`, `module_id`
+   - If `PLANE_STRATEGY` is `none` or missing, set `PLANE_TRACKING: none` — do not parse the table
+   - Store these values for use in Phase 6
 
 5. **Report selection to user:**
    ```
@@ -86,6 +97,7 @@ Discover the actual structure before proceeding.
 **PHASE_0_CHECKPOINT:**
 - [ ] Input type determined
 - [ ] If PRD: next phase selected and dependencies verified
+- [ ] If PRD: Plane Tracking metadata extracted (or confirmed absent)
 - [ ] Feature description ready for Phase 1
 
 ---
@@ -119,6 +131,29 @@ So that <benefit/value>
 
 ---
 
+## Phase 1.5: CONTEXT - Load External Context (Automatic)
+
+**This phase runs silently. No user prompts.**
+
+Check if `context-map.md` exists in the project (search current dir, then walk up parent directories).
+
+**If found:**
+
+1. Parse the context map entries
+2. Match entries against the feature description, affected systems, and key terms from Phase 1
+3. If matches found: resolve and read sources silently using the `context-read` skill logic (see `plugins/prp-core/skills/context-read/SKILL.md` for resolution rules)
+4. Capture loaded context for use in Phase 2 and beyond — treat as additional input alongside codebase findings
+5. Record which sources were loaded (label, type, path) for inclusion in the plan's "Context Sources Loaded" section
+
+**If not found or no matches:** Proceed normally. This phase is optional — missing context is never a blocker.
+
+**PHASE_1.5_CHECKPOINT:**
+- [ ] context-map.md checked
+- [ ] Matching sources loaded (or confirmed none available)
+- [ ] Loaded context captured for downstream phases
+
+---
+
 ## Phase 2: EXPLORE - Codebase Intelligence
 
 **CRITICAL: Launch two specialized agents in parallel using multiple Task tool calls in a single message.**
@@ -141,6 +176,7 @@ LOCATE:
 6. Test patterns - test file structure, assertion styles, test file locations
 7. Configuration - relevant config files and settings
 8. Dependencies - relevant libraries already in use
+9. Testing config - check CLAUDE.md for ## Testing or ## E2E Testing sections, check PRD's ## Testing Strategy if available
 
 Categorize findings by purpose (implementation, tests, config, types, docs).
 Return ACTUAL code snippets from codebase, not generic examples.
@@ -290,6 +326,44 @@ Return findings with:
 
 ---
 
+## Phase 4.5: JOURNEYS - User Journey Documents
+
+**For features with user-facing functionality**, create or update user journey documents.
+
+### Steps:
+
+1. **Scan existing journeys**: Check `.claude/user-journeys/` for existing journey files
+2. **Classify impact**: For each existing journey, determine if it is:
+   - **UNAFFECTED** — no changes needed
+   - **MODIFIED** — steps or expected results change
+   - **BROKEN** — journey will no longer work as written
+3. **Create new journeys**: For each new user-facing flow introduced by this feature, create a journey file at `.claude/user-journeys/{journey-name}.md` using the template at `plugins/prp-core/templates/user-journey.md`
+4. **Update modified journeys**: Edit existing journey files in place to reflect changes
+5. **Create directory if needed**: `mkdir -p .claude/user-journeys`
+
+### Journey Content Guidelines:
+
+- Each journey describes **what the user does** — not how to start infrastructure
+- Steps must be concrete: exact commands, URLs, UI actions
+- Expected results must be specific: response codes, output text, UI state
+- Include a **Validation Script** (bash, exit 0 = PASS) for projects WITHOUT an e2e test framework
+- For projects WITH an e2e framework, omit the Validation Script — e2e test files will be generated during implementation
+
+### Classify Journeys as Automated or Manual:
+
+- **Automated**: Can be fully exercised by a script or e2e test (API calls, CLI commands, deterministic UI flows)
+- **Manual**: Requires human judgment (visual design review, UX feel, complex multi-device flows) — non-blocking
+
+**PHASE_4.5_CHECKPOINT:**
+
+- [ ] Existing journeys scanned and classified
+- [ ] New journey files created for new user-facing flows
+- [ ] Modified journeys updated in place
+- [ ] Each journey has concrete steps with expected results
+- [ ] Journeys classified as automated or manual
+
+---
+
 ## Phase 5: ARCHITECT - Strategic Design
 
 **For complex features with multiple integration points**, use `prp-core:codebase-analyst` to trace how existing architecture works at the integration points identified in Phase 2:
@@ -349,7 +423,26 @@ NOT_BUILDING (explicit scope limits):
 
 ## Phase 6: GENERATE - Implementation Plan File
 
-**OUTPUT_PATH**: `.claude/PRPs/plans/{kebab-case-feature-name}.plan.md`
+### 6.0 Numbering and Filename
+
+1. **Determine the prefix** from the parent PRD's filename (if input was a PRD file):
+   - If PRD filename starts with `V` (e.g., `V001-PRD003-auth.prd.md`): prefix is `V001-PRD003`
+   - If PRD filename starts with `PRD` (e.g., `PRD004-search.prd.md`): prefix is `PRD004`
+   - If PRD filename has no number prefix (legacy): use `PRD000` as prefix (backward compatibility)
+   - If input was free-form text (no PRD): use `PRD000` as prefix
+
+2. **Assign plan number**:
+   1. Read `.claude/PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
+   2. Increment the `plan` counter by 1.
+   3. Write updated counters back to `.claude/PRPs/.counters.json` (use Write tool).
+   4. Zero-pad the new number to 3 digits (e.g., `5` → `005`).
+   5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
+
+3. **Generate filename**: `{prefix}-P{NNN}-{kebab-case-feature-name}.plan.md`
+   - Example: `V001-PRD003-P005-auth-implementation.plan.md`
+   - Example: `PRD004-P006-search-indexing.plan.md`
+
+**OUTPUT_PATH**: `.claude/PRPs/plans/{numbered-filename}`
 
 Create directory if needed: `mkdir -p .claude/PRPs/plans`
 
@@ -385,6 +478,9 @@ So that {benefit}
 | Systems Affected | {comma-separated list}                            |
 | Dependencies     | {external libs/services with versions}            |
 | Estimated Tasks  | {count}                                           |
+| Source PRD       | {prd-file-path or N/A}                            |
+| PRD Phase        | {phase number and name or N/A}                    |
+| Plane Strategy   | {from PRD or "none"}                              |
 
 ---
 
@@ -411,6 +507,50 @@ So that {benefit}
 
 ---
 
+## User Journeys
+
+| Journey File | Impact | Description |
+|-------------|--------|-------------|
+| `.claude/user-journeys/{name}.md` | NEW / MODIFIED / VERIFY | {what this journey tests} |
+
+**Automated** (e2e tests or validation scripts — blocking):
+- `.claude/user-journeys/{name}.md` — {description}
+
+**Manual** (require human testing — non-blocking):
+- `.claude/user-journeys/{name}.md` — {description}
+
+---
+
+## How to Execute
+
+<!--
+  Infrastructure setup for running and validating the feature.
+  Sourced from CLAUDE.md dev server commands, project docs, etc.
+  Journeys and e2e tests assume this setup is already done.
+-->
+
+### Start Services
+```bash
+{startup commands — e.g., npm run dev, docker compose up -d}
+```
+
+### Seed Data / Reset State
+```bash
+{database reset, seed scripts, clear caches — if applicable}
+```
+
+### Verify Ready
+```bash
+{health check or readiness verification — e.g., curl http://localhost:3000/health}
+```
+
+### Teardown
+```bash
+{stop services, cleanup — e.g., docker compose down}
+```
+
+---
+
 ## Mandatory Reading
 
 **CRITICAL: Implementation agent MUST read these files before starting any task:**
@@ -425,6 +565,13 @@ So that {benefit}
 | Source | Section | Why Needed |
 |--------|---------|------------|
 | [Lib Docs v{version}](url#anchor) | {section name} | {specific reason} |
+
+**Context Sources Loaded** (from `context-map.md` via Phase 1.5):
+| Source | Type | Section | Key Insight |
+|--------|------|---------|-------------|
+| {Label} | `{type}` | {section} | {What was learned that affects implementation} |
+
+_If no context-map.md exists or no matches were found, omit this table._
 
 ---
 
@@ -588,6 +735,17 @@ Execute in order. Each task is atomic and independently verifiable.
 | `src/features/new/tests/errors.test.ts`  | error properties           | Error classes  |
 | `src/features/new/tests/service.test.ts` | CRUD ops, access control   | Business logic |
 
+### E2E Tests to Write
+
+<!--
+  Only if project has e2e framework (from CLAUDE.md / PRD Testing Strategy).
+  Otherwise journey Validation Scripts serve as e2e coverage.
+-->
+
+| Test File | Journey Source | Test Cases |
+|-----------|---------------|------------|
+| `e2e/{name}.spec.ts` | `.claude/user-journeys/{name}.md` | {scenarios derived from journey steps} |
+
 ### Edge Cases Checklist
 
 - [ ] Empty string inputs
@@ -638,13 +796,21 @@ Use Supabase MCP to verify:
 - [ ] RLS policies applied
 - [ ] Indexes created
 
-### Level 5: BROWSER_VALIDATION (if UI changes)
+### Level 5: USER_JOURNEY_VALIDATION
 
-Use Browser MCP to verify:
+Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
-- [ ] UI renders correctly
-- [ ] User flows work end-to-end
-- [ ] Error states display properly
+**If e2e framework configured** (from CLAUDE.md `## Testing` section):
+```bash
+{e2e run command from CLAUDE.md, e.g., npx playwright test, npx cypress run}
+```
+
+**If no e2e framework** (validation scripts only):
+1. Run setup from "How to Execute" (Start Services → Seed Data → Verify Ready)
+2. For each journey with a Validation Script: extract and execute the script
+3. Run teardown from "How to Execute"
+
+**EXPECT**: All e2e tests or validation scripts pass (exit 0). Manual journeys listed in report but non-blocking.
 
 ### Level 6: MANUAL_VALIDATION
 
@@ -660,6 +826,8 @@ Use Browser MCP to verify:
 - [ ] Code mirrors existing patterns exactly (naming, structure, logging)
 - [ ] No regressions in existing tests
 - [ ] UX matches "After State" diagram
+- [ ] User journeys created/updated for new user-facing flows
+- [ ] E2E tests or validation scripts defined for automated journeys
 
 ---
 
@@ -671,7 +839,8 @@ Use Browser MCP to verify:
 - [ ] Level 2: Unit tests pass
 - [ ] Level 3: Full test suite + build succeeds
 - [ ] Level 4: Database validation passes (if applicable)
-- [ ] Level 5: Browser validation passes (if applicable)
+- [ ] Level 5: User journey / e2e validation passes (if applicable)
+- [ ] User journey files created/updated in `.claude/user-journeys/`
 - [ ] All acceptance criteria met
 
 ---
@@ -688,12 +857,29 @@ Use Browser MCP to verify:
 
 {Additional context, design decisions, trade-offs, future considerations}
 
+---
+
+## Plane Tracking
+
+<!--
+  Inherited from PRD (if applicable). Updated by this plan command.
+  Downstream commands (prp-implement, prp-ralph) read this section.
+-->
+
+| Field | Value |
+|-------|-------|
+| Project | {project_identifier from PRD, or "N/A"} |
+| Module | {module_name from PRD, or "N/A"} |
+| Module ID | {module_id from PRD, or "N/A"} |
+| Plan Work Item | {work_item_identifier or "N/A"} |
+| Plan Work Item ID | {work_item_id or "N/A"} |
+
 ````
 
 </process>
 
 <output>
-**OUTPUT_FILE**: `.claude/PRPs/plans/{kebab-case-feature-name}.plan.md`
+**OUTPUT_FILE**: `.claude/PRPs/plans/{numbered-filename}` (e.g., `V001-PRD003-P005-auth-implementation.plan.md`)
 
 **If input was from PRD file**, also update the PRD:
 
@@ -703,12 +889,45 @@ Use Browser MCP to verify:
 
 2. **Edit the PRD file** with these changes
 
+**Plane Tracking** (silent, using `plane-track` skill logic — see `plugins/prp-core/skills/plane-track/SKILL.md`):
+
+If `PLANE_STRATEGY` is `integrated` (from Phase 0 context):
+
+1. Call plane-track: action=`create`, type=`Plan`, title=`{Feature Name} - Phase {N}`, project_identifier=`{from PRD}`, module_id=`{from PRD}`, description=`{Summary from plan}`
+2. Update the plan file's `## Plane Tracking` table with the returned work_item_id and identifier
+3. If Plane MCP is unavailable, leave Plane Tracking fields as "N/A" and proceed
+
+If `PLANE_STRATEGY` is `none` or not specified, skip silently.
+
+**Git Operations** (after writing the plan file, updating the PRD, and Plane tracking):
+
+Read `GIT_STRATEGY` from Phase 0 context (default `main-only` if no PRD or field missing). If the plan was not generated from a PRD, ask the user which strategy to use.
+
+- **`none`**: Skip all git operations.
+- **`main-only`**: Commit on current branch:
+  ```bash
+  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
+  ```
+- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-id}-{prd-name}`). If not, check it out. Then commit:
+  ```bash
+  git checkout feat/{prd-id}-{prd-kebab-name}  # if not already on it
+  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
+  ```
+- **`branch-per-phase`**: Create a phase branch and commit:
+  ```bash
+  git checkout -b feat/{plan-id}-{phase-kebab}
+  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
+  ```
+
 **REPORT_TO_USER** (display after creating plan):
 
 ```markdown
 ## Plan Created
 
-**File**: `.claude/PRPs/plans/{feature-name}.plan.md`
+**File**: `.claude/PRPs/plans/{numbered-filename}`
 
 {If from PRD:}
 **Source PRD**: `{prd-file-path}`
@@ -740,13 +959,16 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 - BEFORE: {one-line current state}
 - AFTER: {one-line new state}
 
+**User Journeys**:
+- {N} new, {M} modified, {K} automated, {J} manual
+
 **Risks**:
 - {Primary risk}: {mitigation}
 
 **Confidence Score**: {1-10}/10 for one-pass implementation success
 - {Rationale for score}
 
-**Next Step**: To execute, run: `/prp-implement .claude/PRPs/plans/{feature-name}.plan.md`
+**Next Step**: To execute, run: `/prp-implement .claude/PRPs/plans/{numbered-filename}`
 ````
 
 </output>
@@ -782,6 +1004,9 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 - [ ] Every task has executable validation command
 - [ ] All 6 validation levels defined where applicable
 - [ ] Edge cases enumerated with test plans
+- [ ] User journeys created for user-facing flows
+- [ ] E2E tests table populated (if e2e framework configured)
+- [ ] How to Execute section has start/seed/ready/teardown commands
 
 **UX_CLARITY:**
 
@@ -798,5 +1023,7 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 **PATTERN_FAITHFUL**: Every new file mirrors existing codebase style exactly
 **VALIDATION_DEFINED**: Every task has executable verification command
 **UX_DOCUMENTED**: Before/After transformation is visually clear with data flows
+**JOURNEYS_DEFINED**: User journey files created for new user-facing flows with concrete steps
 **ONE_PASS_TARGET**: Confidence score 8+ indicates high likelihood of first-attempt success
+**PLANE_TRACKED**: Plan work item created in Plane with module association (or explicitly skipped/unavailable)
 </success_criteria>
