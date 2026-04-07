@@ -194,27 +194,9 @@ Ask these questions:
 
 ---
 
-## Phase 8: GIT STRATEGY - Branching Model (Optional)
+## Phase 8: GENERATE - Write Vision Document
 
-Ask:
-
-> **How should we handle branching for this vision's work?**
->
-> - `none` — All work on the main branch. No branches or PRs created automatically. (default)
-> - `prd` — One feature branch per PRD. A single PR back to main when the PRD is fully implemented.
-> - `plan` — One branch per PRD, with sub-branches for each plan. PRs created at the end of each plan implementation back to the PRD branch, and a final PR from the PRD branch back to main.
->
-> Press enter or say "none" to skip (default).
-
-If the user skips or says "none", record `none`. This value is written to the vision doc's `## Git Strategy` section and cascades to all PRDs created under this vision.
-
-**GATE**: Wait for user response before proceeding.
-
----
-
-## Phase 9: GENERATE - Write Vision Document
-
-### 9.1 Counter Management
+### 8.1 Counter Management
 
 1. Use the **Read** tool to read `.claude/PRPs/.counters.json`. If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
 2. Increment the `vision` counter by 1.
@@ -222,19 +204,18 @@ If the user skips or says "none", record `none`. This value is written to the vi
 4. Zero-pad the new number to 3 digits for the filename (e.g., `1` → `001`).
 5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
 
-### 9.2 Generate Vision Document
+### 8.2 Generate Vision Document
 
 1. Create directory: `mkdir -p .claude/PRPs/visions`
 2. Generate filename: `V{NNN}-{kebab-case-name}.vision.md` (e.g., `V001-user-onboarding.vision.md`)
 3. Fill in the vision template (from `plugins/prp-core/templates/vision.md`) with discovery answers:
-   - Replace all `{placeholder}` fields with actual content from phases 1-8
+   - Replace all `{placeholder}` fields with actual content from phases 1-7
    - Fill `id` frontmatter with `V{NNN}` (e.g., `V001`)
    - Fill `created` frontmatter with current ISO timestamp
-   - Write the selected git strategy to the `## Git Strategy` section
    - The PRD Tracker starts empty or with preliminary PRDs if the user mentioned specific features during discovery
 4. Write the file to `.claude/PRPs/visions/V{NNN}-{kebab-case-name}.vision.md`
 
-### 9.3 Check for Existing Active Vision
+### 8.3 Check for Existing Active Vision
 
 Before writing, scan `.claude/PRPs/visions/` for any existing `.vision.md` files (excluding `completed/` subdirectory). If an active vision exists, warn the user:
 
@@ -244,7 +225,7 @@ Before writing, scan `.claude/PRPs/visions/` for any existing `.vision.md` files
 
 ---
 
-## Phase 9.5: GIT - Commit Vision Document
+## Phase 8.5: GIT - Commit Vision Document
 
 ```bash
 git add .claude/PRPs/visions/V{NNN}-{name}.vision.md .claude/PRPs/.counters.json
@@ -256,7 +237,7 @@ git push -u origin HEAD
 
 ---
 
-## Phase 10: OUTPUT - Summary
+## Phase 9: OUTPUT - Summary
 
 After generating, report:
 

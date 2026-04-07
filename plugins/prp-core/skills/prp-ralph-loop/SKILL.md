@@ -179,7 +179,7 @@ Before signaling completion, you MUST run the completion protocol from the `prp-
 
 1. **Update Source PRD** — Find the source PRD (from plan metadata, inline reference, or directory scan). Update the phase status from `in-progress` to `complete`. If all PRD phases are now complete, archive the PRD to `.claude/PRPs/prds/completed/`.
 2. **Archive the plan** to `.claude/PRPs/plans/completed/`
-3. **Run git operations** per the PRD's git strategy
+3. **Run git operations** per the project's git strategy (from `CLAUDE.md`)
 4. **Clean up state** — remove `.claude/prp-ralph.state.md`
 
 ### When to Output the Completion Signal

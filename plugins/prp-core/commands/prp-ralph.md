@@ -408,7 +408,7 @@ ALL of these must be true:
 
 6. **Git Operations**
 
-   **Determine git strategy**: If a source PRD was found in step 4, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if no PRD or field is missing.
+   **Read git strategy**: Read the project's `CLAUDE.md` and find the `## Git Strategy` section. Extract the value after `Strategy:` and `Base Branch:`. Defaults: strategy=`main-only`, base branch=`main`.
 
    - **`none`**: Skip all git operations. Do not stage or commit.
    - **`main-only`**: Commit on current branch and push:
@@ -417,9 +417,11 @@ ALL of these must be true:
      git commit -m "feat: implement {feature-name}"
      git push -u origin HEAD
      ```
-   - **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit and push:
+   - **`branch-per-prd`**: Verify on the PRD branch (hierarchical name from `.claude/rules/git-strategy.md`). If not, check it out. Then commit and push:
      ```bash
-     git checkout feat/{prd-kebab-name}  # if not already on it
+     # If vision-linked: feat/{vision-id}/{prd-id}-{name}
+     # If standalone:    feat/{prd-id}-{name}
+     git checkout feat/{...}  # if not already on it
      git add -A
      git commit -m "feat: implement {feature-name}"
      git push -u origin HEAD

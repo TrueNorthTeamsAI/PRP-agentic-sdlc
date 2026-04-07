@@ -62,7 +62,8 @@ Discover the actual structure before proceeding.
 4. **Extract phase context:**
    ```
    SOURCE_PRD: {path to the PRD file}
-   GIT_STRATEGY: {from PRD's "Git Strategy" field, default "main-only" if not specified}
+   GIT_STRATEGY: {from project's CLAUDE.md "## Git Strategy" section, default "main-only" if not specified}
+   BASE_BRANCH: {from project's CLAUDE.md "## Git Strategy" section, default "main" if not specified}
    PHASE: {phase number and name}
    GOAL: {from phase details}
    SCOPE: {from phase details}
@@ -864,7 +865,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
 **Git Operations** (after writing the plan file and updating the PRD):
 
-Read `GIT_STRATEGY` from Phase 0 context (default `main-only` if no PRD or field missing). If the plan was not generated from a PRD, ask the user which strategy to use.
+**Read git strategy**: Read the project's `CLAUDE.md` and find the `## Git Strategy` section. Extract the value after `Strategy:` and `Base Branch:`. Defaults: strategy=`main-only`, base branch=`main`.
 
 - **`none`**: Skip all git operations.
 - **`main-only`**: Commit on current branch:
@@ -872,15 +873,19 @@ Read `GIT_STRATEGY` from Phase 0 context (default `main-only` if no PRD or field
   git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
-- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-id}-{prd-name}`). If not, check it out. Then commit:
+- **`branch-per-prd`**: Verify on the PRD branch. If not, check it out. Then commit:
   ```bash
-  git checkout feat/{prd-id}-{prd-kebab-name}  # if not already on it
+  # If vision-linked: feat/{vision-id}/{prd-id}-{prd-kebab-name}
+  # If standalone:    feat/{prd-id}-{prd-kebab-name}
+  git checkout feat/{...}  # if not already on it
   git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
-- **`branch-per-phase`**: Create a phase branch and commit:
+- **`branch-per-phase`**: Create a phase branch from the PRD branch (or base branch if no PRD branch) using hierarchical naming, and commit:
   ```bash
-  git checkout -b feat/{plan-id}-{phase-kebab}
+  # If vision-linked: feat/{vision-id}/{prd-id}/{plan-id}-{phase-kebab}
+  # If standalone:    feat/{prd-id}/{plan-id}-{phase-kebab}
+  git checkout -b feat/{...}
   git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```

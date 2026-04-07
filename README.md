@@ -98,7 +98,7 @@ After creating a plan, choose one of three ways to execute it:
 | **Autonomous** | `/prp-ralph path/to/plan` | Hands-off loop until all validations pass | Any |
 | **Parallel** | `/build-with-agent-team path/to/plan` | Multiple agents collaborating in parallel | Opus 4.6 only |
 
-All three share the same **completion protocol**: update source PRD, update Plane tracking, archive plan, and execute git operations per the PRD's git strategy.
+All three share the same **completion protocol**: update source PRD, archive plan, and execute git operations per the project's git strategy (defined in `CLAUDE.md`).
 
 ### Issue & Debug Workflow
 
@@ -188,7 +188,7 @@ When your goal spans multiple PRDs — like building an entire user onboarding e
 ```
 /prp-vision "complete user onboarding experience"
     ↓
-Interactive discovery (problem space, outcomes, scope, success criteria, git strategy)
+Interactive discovery (problem space, outcomes, scope, success criteria)
     ↓
 Creates .claude/PRPs/visions/V001-user-onboarding.vision.md
     ↓
@@ -207,7 +207,7 @@ Repeat for more PRDs and phases under the same vision
 
 **Vision key points:**
 - One active vision per project at a time
-- Vision's git strategy cascades to all PRDs (`none`→`none`, `prd`→`branch-per-prd`, `plan`→`branch-per-phase`)
+- Git strategy is a project-level setting in CLAUDE.md (not per-vision or per-PRD)
 - PRDs reference the vision by link, not content duplication
 - Completed visions move to `.claude/PRPs/visions/completed/`
 
@@ -216,7 +216,7 @@ Repeat for more PRDs and phases under the same vision
 ```
 /prp-prd "user authentication system"
     ↓
-Creates PRD with Implementation Phases table + Git Strategy (PRD001-user-auth.prd.md)
+Creates PRD with Implementation Phases table (PRD001-user-auth.prd.md)
     ↓
 /prp-plan .claude/PRPs/prds/PRD001-user-auth.prd.md
     ↓
@@ -227,7 +227,7 @@ Choose ONE execution path:
   /prp-ralph .claude/PRPs/plans/PRD001-P001-auth-phase-1.plan.md       ← autonomous
   /build-with-agent-team .claude/PRPs/plans/PRD001-P001-auth-phase-1.plan.md  ← parallel (Opus)
     ↓
-Executes plan, updates PRD progress, archives plan, commits per git strategy
+Executes plan, updates PRD progress, archives plan, commits per project git strategy
     ↓
 Repeat /prp-plan for next phase
 ```

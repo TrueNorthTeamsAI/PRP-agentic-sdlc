@@ -122,14 +122,12 @@ For each discovered artifact, extract key status information:
 - Title (from `#` heading)
 - Status (from frontmatter `status:` field)
 - PRD Tracker table: each row's `#`, `PRD`, `Description`, `Status`, `Depends`, `PRD File`
-- Git Strategy
 
 **PRDs** — Parse:
 - PRD ID (from filename, e.g., `PRD001` or `V001-PRD001`)
 - Title (from `#` heading)
 - Whether vision-linked (check for Vision Reference section or `V###` prefix)
 - Implementation Phases table: each row's `#`, `Phase`, `Description`, `Status`, `Depends`, `PRP Plan`
-- Git Strategy (from Technical Approach section)
 
 **Plans** — Parse:
 - Plan ID (from filename)
@@ -205,11 +203,14 @@ Walk the hierarchy top-down to find the FIRST actionable item:
 
 Output the status summary in this format:
 
+Also read the project's `CLAUDE.md` and find the `## Git Strategy` section. Extract the values after `Strategy:` and `Base Branch:`. Defaults: strategy=`main-only`, base branch=`main`. Display at the top of the status.
+
 ```markdown
 ## PRP Development Status
 
+**Git Strategy**: `{strategy}` | **Base Branch**: `{base-branch}` *(from CLAUDE.md)*
+
 ### Active Vision: V001 — {Title}
-Git Strategy: `{strategy}`
 
 | # | PRD | Status | Phases | Progress |
 |---|-----|--------|--------|----------|

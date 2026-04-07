@@ -81,7 +81,6 @@ Visions sit above PRDs and capture strategic objectives for major milestones:
 
 - **One active vision** per project at a time
 - PRDs link to visions via `--vision` flag: `/prp-prd --vision .claude/PRPs/visions/V001-name.vision.md`
-- Vision's git strategy cascades to all PRDs: `none`→`none`, `prd`→`branch-per-prd`, `plan`→`branch-per-phase`
 - Vision's PRD Tracker is automatically updated when PRDs are created under it
 - Completed visions move to `.claude/PRPs/visions/completed/`
 - Stored in `.claude/PRPs/visions/`
@@ -120,22 +119,49 @@ PRD002-P001             — Plan under standalone PRD
 
 ## Git Strategy
 
-PRDs declare a `Git Strategy` field in their Technical Approach section. All downstream commands (plan, implement, ralph, build-with-agent-team) read and follow it.
+Git strategy is a **project-level setting** defined in the project's `CLAUDE.md` under a `## Git Strategy` section. It is selected during project initialization (`/prp-core:init-project`) and applies to all PRP commands.
+
+All commands (prp-prd, prp-plan, prp-implement, prp-ralph, build-with-agent-team) read git strategy and base branch from `CLAUDE.md`. Defaults: strategy=`main-only`, base branch=`main`.
+
+Additionally, `init-project` scaffolds a `.claude/rules/git-strategy.md` file with detailed branch naming conventions, merge targets, and PR rules. This rules file is loaded automatically into every Claude Code conversation, so all work (PRP and ad-hoc) follows the same conventions.
 
 | Strategy | Behavior |
 |----------|----------|
 | `none` | No git operations. User manages git manually. |
 | `main-only` | Commit on current branch. No branch creation. **(default)** |
-| `branch-per-prd` | One feature branch for the entire PRD. Created at PRD generation. |
-| `branch-per-phase` | Each phase gets its own branch. Created by prp-plan. |
+| `branch-per-prd` | One feature branch per PRD. All phases commit there. PR back to base branch when complete. |
+| `branch-per-phase` | Separate branch per phase. Phase branches PR to PRD branch. PRD branch PRs to base branch. |
+
+### CLAUDE.md Format
+
+```markdown
+## Git Strategy
+
+Strategy: `main-only`
+Base Branch: `main`
+```
+
+### Hierarchical Branch Naming
+
+Branches use a hierarchical naming convention reflecting PRP artifact lineage:
+
+| Context | Pattern | Example |
+|---------|---------|---------|
+| PRD (no vision) | `feat/{prd-id}-{name}` | `feat/PRD003-auth-system` |
+| PRD (with vision) | `feat/{vision-id}/{prd-id}-{name}` | `feat/V001/PRD001-auth-system` |
+| Phase (no vision) | `feat/{prd-id}/{plan-id}-{name}` | `feat/PRD003/P001-api-endpoints` |
+| Phase (with vision) | `feat/{vision-id}/{prd-id}/{plan-id}-{name}` | `feat/V001/PRD001/P001-api-endpoints` |
+| Fix / ad-hoc | `fix/{name}` | `fix/pagination-offset` |
+
+Branches merge back to their parent: phase→PRD branch, PRD→base branch, fix→base branch.
 
 ### Strategy Flow
 
 | Command | none | main-only | branch-per-prd | branch-per-phase |
 |---------|------|-----------|-----------------|------------------|
-| prp-prd | skip | commit | create branch + commit | commit |
-| prp-plan | skip | commit | verify branch, commit | create phase branch, commit |
-| execute* | skip | commit | verify branch, commit | verify branch, commit |
+| prp-prd | skip | commit | create PRD branch + commit | commit on base branch |
+| prp-plan | skip | commit | verify PRD branch, commit | create phase branch, commit |
+| execute* | skip | commit | verify PRD branch, commit | verify phase branch, commit |
 
 *execute = prp-implement, prp-ralph, or build-with-agent-team
 

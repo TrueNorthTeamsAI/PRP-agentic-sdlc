@@ -353,7 +353,7 @@ Example plan validation section:
 Before team setup, extract metadata from the plan:
 
 1. **Source PRD**: Check the plan's `## Metadata` table for `Source PRD` row. If found, read the PRD file.
-2. **Git Strategy**: If a source PRD exists, read its `Git Strategy` field from the Technical Approach section. Default to `main-only` if not specified or no PRD.
+2. **Git Strategy**: Read the project's `CLAUDE.md` and find the `## Git Strategy` section. Extract the value after `Strategy:`. Default to `main-only` if the section is missing.
 
 ---
 
@@ -362,7 +362,7 @@ Before team setup, extract metadata from the plan:
 Now read the plan at `$ARGUMENTS[0]` and begin:
 
 1. Read and understand the plan
-2. **Extract metadata** (Step 0 above — Source PRD, git strategy)
+2. **Extract metadata** (Step 0 above — Source PRD)
 3. Determine team size (use `$ARGUMENTS[1]` if provided, otherwise decide)
 4. Define agent roles, ownership, **cross-cutting concern assignments**, and **validation requirements for each**
 5. **Map the contract chain** — which agent produces interfaces that others consume?
@@ -418,7 +418,7 @@ mv {plan_path} .claude/PRPs/plans/completed/
 
 ### 7.4 Git Operations
 
-**Read git strategy from Step 0** (default `main-only` if not determined).
+**Read git strategy**: Read the project's `CLAUDE.md` and find the `## Git Strategy` section. Extract the value after `Strategy:` and `Base Branch:`. Defaults: strategy=`main-only`, base branch=`main`.
 
 - **`none`**: Skip all git operations. Do not stage or commit.
 - **`main-only`**: Commit on current branch and push:
@@ -427,9 +427,11 @@ mv {plan_path} .claude/PRPs/plans/completed/
   git commit -m "feat: implement {feature-name}"
   git push -u origin HEAD
   ```
-- **`branch-per-prd`**: Verify on the PRD branch (`feat/{prd-name}`). If not, check it out. Then commit and push:
+- **`branch-per-prd`**: Verify on the PRD branch (hierarchical name from `.claude/rules/git-strategy.md`). If not, check it out. Then commit and push:
   ```bash
-  git checkout feat/{prd-kebab-name}  # if not already on it
+  # If vision-linked: feat/{vision-id}/{prd-id}-{name}
+  # If standalone:    feat/{prd-id}-{name}
+  git checkout feat/{...}  # if not already on it
   git add -A
   git commit -m "feat: implement {feature-name}"
   git push -u origin HEAD

@@ -40,9 +40,8 @@ Each question set builds on previous answers. Grounding phases validate assumpti
 2. Read the vision file to extract:
    - **Vision ID**: from filename (e.g., `V001` from `V001-user-onboarding.vision.md`)
    - **Vision Title**: from the `# {title}` heading
-   - **Git Strategy**: from the `## Git Strategy` section (the value after `**Strategy**: \``)
    - **Section headings**: for building anchor links in the Vision Reference table
-3. Store `VISION_PATH`, `VISION_ID`, `VISION_TITLE`, and `VISION_GIT_STRATEGY` for use in later phases.
+3. Store `VISION_PATH`, `VISION_ID`, and `VISION_TITLE` for use in later phases.
 4. The remaining text after stripping `--vision {path}` is the feature description (same as today).
 
 **If `--vision` is NOT present**: Proceed as normal. `VISION_PATH` is empty.
@@ -239,18 +238,6 @@ Ask final clarifying questions:
 >
 > 5. **Open Questions**: What uncertainties could change the approach?
 >
-> 6. **Git Strategy**: How should we handle branching for this project?
->    - `none` — No git operations (you manage git manually)
->    - `main-only` — All work on current branch, auto-commit after each step
->    - `branch-per-prd` — One feature branch for the whole PRD, all phases commit there
->    - `branch-per-phase` — Separate branch per implementation phase
-
-**If `VISION_PATH` is set**: Pre-fill the git strategy question from the vision's git strategy. Map vision strategies to PRD strategies: `none`→`none`, `prd`→`branch-per-prd`, `plan`→`branch-per-phase`. Present the mapped value as the default:
-
-> *Based on the parent vision's git strategy (`{VISION_GIT_STRATEGY}`), the default is `{mapped-strategy}`. Press enter to accept or choose a different strategy.*
-
-The user can still override.
-
 **GATE**: Wait for user responses before generating.
 
 ---
@@ -379,8 +366,6 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 **Architecture Notes**
 - {Key technical decision and why}
 - {Dependency or integration point}
-
-**Git Strategy**: {none | main-only | branch-per-prd | branch-per-phase}
 
 **Technical Risks**
 
@@ -534,7 +519,9 @@ After generating the PRD, check if the project has a `CLAUDE.md` file. If it doe
 
 ## Phase 7.75: GIT - Apply Git Strategy
 
-After generating the PRD file (and CLAUDE.md updates), apply the git strategy:
+After generating the PRD file (and CLAUDE.md updates), apply the project's git strategy.
+
+**Read git strategy**: Read the project's `CLAUDE.md` and find the `## Git Strategy` section. Extract the value after `Strategy:` and `Base Branch:`. Defaults: strategy=`main-only`, base branch=`main`.
 
 - **`none`**: No git operations.
 - **`main-only`**: Commit the PRD file on the current branch:
@@ -542,13 +529,17 @@ After generating the PRD file (and CLAUDE.md updates), apply the git strategy:
   git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
-- **`branch-per-prd`**: Create a feature branch and commit:
+- **`branch-per-prd`**: Create a feature branch using hierarchical naming and commit:
   ```bash
+  # If PRD is linked to a vision:
+  git checkout -b feat/{VISION_ID}/{PRD-ID}-{prd-kebab-name}
+  # If standalone PRD (no vision):
   git checkout -b feat/{PRD-ID}-{prd-kebab-name}
+
   git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
-- **`branch-per-phase`**: Commit on current branch (phase branches created later by prp-plan):
+- **`branch-per-phase`**: Commit on base branch (phase branches created later by prp-plan):
   ```bash
   git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"

@@ -82,20 +82,6 @@ created: "{timestamp}"
 |-------|------|------------|-------------|
 | {Source name} | {web/project/file/second-brain/obsidian/etc.} | {path or URL} | {What it contains} |
 
-## Git Strategy
-
-<!--
-  Branching model for all PRDs and plans under this vision. Optional — defaults to none.
-  This value cascades: PRDs created under this vision inherit it automatically.
-
-  OPTIONS:
-    none  — All work on main branch, no PRs created automatically
-    prd   — One branch per PRD, single PR → main when PRD is complete
-    plan  — One branch per PRD + sub-branches per plan, PRs at each level
--->
-
-**Strategy**: `{none | prd | plan}`
-
 ## PRD Tracker
 
 <!--

@@ -85,12 +85,39 @@ Ask the user to choose a tech stack. Present these options:
 
 Record the user's choice and map it to the template filename.
 
-### 2.3 Project Description
+### 2.3 Select Git Strategy
+
+Ask the user to choose a git strategy for the project. This is a project-wide setting stored in CLAUDE.md that controls how all PRP commands handle branching and commits.
+
+> **Git Strategy** — How should PRP commands handle branching?
+>
+> | # | Strategy | Description |
+> |---|----------|-------------|
+> | 1 | `none` | No git operations. You manage git manually. |
+> | 2 | `main-only` | All work on current branch, auto-commit after each step. **(default)** |
+> | 3 | `branch-per-prd` | One feature branch per PRD. All phases commit there. PR back to base branch when PRD is complete. |
+> | 4 | `branch-per-phase` | Separate branch per implementation phase. Phase branches PR back to PRD branch, then PRD branch PRs back to base branch. |
+>
+> Enter a number or strategy name (default: 2 / `main-only`):
+
+If the user presses enter or gives no input, default to `main-only`.
+
+Then ask for the base development branch:
+
+> **Base Branch** — What is the base development branch? (default: `main`)
+>
+> This is where feature branches originate from and merge back to. Common choices: `main`, `dev`, `develop`.
+
+If the user presses enter or gives no input, default to `main`.
+
+Record the selected strategy and base branch for writing into CLAUDE.md and the rules file.
+
+### 2.4 Project Description
 
 Ask the user:
 > "Give a one-line description of this project (used in GitHub repo description and README):"
 
-### 2.4 Jira Integration
+### 2.5 Jira Integration
 
 Ask the user:
 > **Jira Integration** (for issue tracking):
@@ -106,7 +133,7 @@ Ask the user:
 
 If the user skips all Jira questions, `.mcp.json` will include the Jira server with placeholder values that need to be filled in.
 
-### 2.5 Confirm Settings
+### 2.6 Confirm Settings
 
 Present a summary and ask for confirmation before proceeding:
 
@@ -116,6 +143,8 @@ Project Settings:
   Owner:          {owner}
   Visibility:     {visibility}
   Tech Stack:     {stack-name}
+  Git Strategy:   {git-strategy}
+  Base Branch:    {base-branch}
   Directory:      {dev-directory}\{repo-name}
   Description:    {description}
   Jira URL:       {jira-url or "Not configured"}
@@ -131,6 +160,8 @@ Wait for user confirmation. If "no", ask what to change.
 - [ ] Visibility determined
 - [ ] Dev directory determined
 - [ ] Tech stack selected
+- [ ] Git strategy selected
+- [ ] Base branch confirmed
 - [ ] Description provided
 - [ ] Jira integration settings collected (or explicitly skipped)
 - [ ] User confirmed settings
@@ -192,6 +223,13 @@ Customize the template:
   > {description}
   ```
 - Keep all remaining template content intact — it contains valuable framework-specific conventions and rules
+- Append the Git Strategy section at the end of the file (before any trailing blank lines):
+  ```markdown
+  ## Git Strategy
+
+  Strategy: `{git-strategy}`
+  Base Branch: `{base-branch}`
+  ```
 
 Write the customized content to `{dev-directory}/{repo-name}/CLAUDE.md`.
 
@@ -218,6 +256,10 @@ Write a minimal CLAUDE.md:
 ## Project-Specific Conventions
 
 <!-- Naming patterns, gotchas, unique patterns -->
+
+## Git Strategy
+
+Strategy: `{git-strategy}`
 
 ```
 
@@ -448,6 +490,18 @@ The file contains the Jira MCP server configuration. Use actual values where the
 }
 ```
 
+### 4.7 Scaffold .claude/rules/git-strategy.md
+
+If the git strategy is **not** `none`, create the rules file from the template:
+
+1. Create directory: `mkdir -p {dev-directory}/{repo-name}/.claude/rules`
+2. Read the template from `${CLAUDE_PLUGIN_ROOT}/templates/git-strategy.md`
+3. Replace all `{strategy}` placeholders with the selected git strategy
+4. Replace all `{base-branch}` placeholders with the selected base branch
+5. Write to `{dev-directory}/{repo-name}/.claude/rules/git-strategy.md`
+
+If the git strategy is `none`, skip this step — no rules file is needed.
+
 **PHASE_4_CHECKPOINT**:
 - [ ] Repository cloned to dev directory
 - [ ] CLAUDE.md written (from template or minimal)
@@ -455,33 +509,27 @@ The file contains the Jira MCP server configuration. Use actual values where the
 - [ ] README.md written
 - [ ] context-map.md written (from template)
 - [ ] .mcp.json written (with Jira MCP config)
+- [ ] .claude/rules/git-strategy.md written (if strategy is not `none`)
 
 ---
 
 ## Phase 5: Commit & Push
 
-### 5.1 Detect Default Branch
-
-Check what the default branch is:
-```bash
-git -C "{dev-directory}/{repo-name}" branch --show-current
-```
-
-If empty (fresh repo with no commits), default to `main`.
-
-### 5.2 Stage, Commit, Push
+### 5.1 Stage, Commit, Push
 
 ```bash
 cd "{dev-directory}/{repo-name}"
-git add CLAUDE.md .gitignore README.md context-map.md .mcp.json
+git add CLAUDE.md .gitignore README.md context-map.md .mcp.json .claude/rules/git-strategy.md
 git commit -m "chore: initialize project with CLAUDE.md, context-map, and Jira integration"
-git push -u origin main
+git push -u origin {base-branch}
 ```
 
 If push fails because the branch doesn't exist remotely yet (fresh repo):
 ```bash
-git push --set-upstream origin main
+git push --set-upstream origin {base-branch}
 ```
+
+If `.claude/rules/git-strategy.md` was not created (strategy is `none`), omit it from the `git add`.
 
 **PHASE_5_CHECKPOINT**:
 - [ ] Files staged
@@ -500,14 +548,17 @@ Project initialized successfully!
   Location:      {dev-directory}\{repo-name}
   GitHub:        https://github.com/{owner}/{repo-name}
   Stack:         {stack-name}
+  Git Strategy:  {git-strategy}
+  Base Branch:   {base-branch}
   Jira URL:       {jira-url or "Not configured — edit .mcp.json"}
 
   Files created:
-    CLAUDE.md       — Project conventions and AI guidance
-    .gitignore      — Stack-appropriate ignore rules
-    README.md       — Project overview
-    context-map.md  — External context source registry
-    .mcp.json       — MCP server configuration (Jira)
+    CLAUDE.md                       — Project conventions and AI guidance
+    .gitignore                      — Stack-appropriate ignore rules
+    README.md                       — Project overview
+    context-map.md                  — External context source registry
+    .mcp.json                       — MCP server configuration (Jira)
+    .claude/rules/git-strategy.md   — Branch naming and merge conventions
 
 Next steps:
   1. Open the repo: cd "{dev-directory}\{repo-name}"
@@ -527,8 +578,8 @@ Now run through all phases:
 
 1. Validate the repo name from `$ARGUMENTS` and check prerequisites
 2. Find and parse defaults from scaffold-repo.json or CLAUDE.md
-3. Ask for tech stack, description, Jira integration settings, and confirm
+3. Ask for tech stack, git strategy, base branch, description, Jira integration settings, and confirm
 4. Create the GitHub repo
-5. Clone, scaffold CLAUDE.md, generate .gitignore, README, context-map.md, and .mcp.json (Jira)
+5. Clone, scaffold CLAUDE.md (with git strategy + base branch), generate .gitignore, README, context-map.md, .mcp.json (Jira), and .claude/rules/git-strategy.md
 6. Commit and push
 7. Report success
