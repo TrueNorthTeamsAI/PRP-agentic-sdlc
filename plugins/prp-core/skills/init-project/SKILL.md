@@ -204,7 +204,12 @@ gh repo create {owner}/{repo-name} --{visibility} --description "{description}" 
 gh repo clone {owner}/{repo-name} "{dev-directory}/{repo-name}"
 ```
 
-Then change into the new directory for subsequent operations.
+Then change into the new directory and set the default repo for GitHub CLI operations (ensures PRs target the origin, not an upstream fork):
+
+```bash
+cd "{dev-directory}/{repo-name}"
+gh repo set-default {owner}/{repo-name}
+```
 
 ### 4.2 Scaffold CLAUDE.md
 
