@@ -203,3 +203,6 @@ PRPs-agentic-sdlc-starter/
   pyproject.toml             # Python package configuration
   CLAUDE.md                  # This file
 ```
+
+<!-- IJFW-MEMORY-START (managed -- do not edit manually) -->
+<!-- IJFW-MEMORY-END -->
