@@ -251,12 +251,12 @@ git blame -L {start},{end} {affected-file}
 ### 4.1 Artifact Path
 
 ```bash
-mkdir -p .claude/PRPs/issues
+mkdir -p PRPs/issues
 ```
 
-**Path:** `.claude/PRPs/issues/issue-{number}.md`
+**Path:** `PRPs/issues/issue-{number}.md`
 
-If free-form (no issue number): `.claude/PRPs/issues/investigation-{timestamp}.md`
+If free-form (no issue number): `PRPs/issues/investigation-{timestamp}.md`
 
 ### 4.2 Artifact Template
 
@@ -446,7 +446,7 @@ describe("{feature}", () => {
 
 - **Investigated by**: Claude
 - **Timestamp**: {ISO timestamp}
-- **Artifact**: `.claude/PRPs/issues/issue-{number}.md`
+- **Artifact**: `PRPs/issues/issue-{number}.md`
 
 ````
 
@@ -461,7 +461,7 @@ describe("{feature}", () => {
 ## Phase 5: COMMIT - Save Artifact
 
 ```bash
-git add .claude/PRPs/issues/
+git add PRPs/issues/
 git status
 ````
 
@@ -585,7 +585,7 @@ EOF
 
 ### Artifact
 
-`.claude/PRPs/issues/issue-{number}.md`
+`PRPs/issues/issue-{number}.md`
 
 ### GitHub
 

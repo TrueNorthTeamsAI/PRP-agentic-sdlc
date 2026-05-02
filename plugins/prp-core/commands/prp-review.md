@@ -111,13 +111,13 @@ Look for implementation artifacts:
 
 ```bash
 # Find implementation report by branch name
-ls .claude/PRPs/reports/*{branch-name}*.md 2>/dev/null
+ls PRPs/reports/*{branch-name}*.md 2>/dev/null
 
 # Find completed plans
-ls .claude/PRPs/plans/completed/ 2>/dev/null
+ls PRPs/plans/completed/ 2>/dev/null
 
 # Find issue investigations
-ls .claude/PRPs/issues/completed/ 2>/dev/null
+ls PRPs/issues/completed/ 2>/dev/null
 ```
 
 **If implementation report exists:**
@@ -328,12 +328,12 @@ npm test -- {relevant-test-pattern}
 ### 6.1 Create Report Directory
 
 ```bash
-mkdir -p .claude/PRPs/reviews
+mkdir -p PRPs/reviews
 ```
 
 ### 6.2 Generate Report File
 
-**Path**: `.claude/PRPs/reviews/pr-{NUMBER}-review.md`
+**Path**: `PRPs/reviews/pr-{NUMBER}-review.md`
 
 ```markdown
 ---
@@ -434,7 +434,7 @@ recommendation: {approve|request-changes|block}
 ---
 
 *Reviewed by Claude*
-*Report: `.claude/PRPs/reviews/pr-{NUMBER}-review.md`*
+*Report: `PRPs/reviews/pr-{NUMBER}-review.md`*
 ```
 
 **PHASE_6_CHECKPOINT:**
@@ -451,13 +451,13 @@ Based on recommendation and flags:
 
 ```bash
 # If --approve flag AND no critical/high issues
-gh pr review {NUMBER} --approve --body-file .claude/PRPs/reviews/pr-{NUMBER}-review.md
+gh pr review {NUMBER} --approve --body-file PRPs/reviews/pr-{NUMBER}-review.md
 
 # If --request-changes flag OR high issues found
-gh pr review {NUMBER} --request-changes --body-file .claude/PRPs/reviews/pr-{NUMBER}-review.md
+gh pr review {NUMBER} --request-changes --body-file PRPs/reviews/pr-{NUMBER}-review.md
 
 # Otherwise just comment
-gh pr comment {NUMBER} --body-file .claude/PRPs/reviews/pr-{NUMBER}-review.md
+gh pr comment {NUMBER} --body-file PRPs/reviews/pr-{NUMBER}-review.md
 ```
 
 ### 7.2 Get Comment URL
@@ -502,7 +502,7 @@ gh pr view {NUMBER} --json reviews,comments --jq '.reviews[-1].url // .comments[
 
 ### Artifacts
 
-- Report: `.claude/PRPs/reviews/pr-{NUMBER}-review.md`
+- Report: `PRPs/reviews/pr-{NUMBER}-review.md`
 - PR Comment: {comment_url}
 
 ### Next Steps

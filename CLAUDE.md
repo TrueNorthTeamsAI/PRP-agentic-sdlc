@@ -23,10 +23,9 @@ plugins/prp-core/
 ```
 
 The `.claude/` directory in this repo is reserved for:
-- `.claude/PRPs/` — Artifact storage (plans, PRDs, visions, reports, investigations)
-- `.claude/PRPs/visions/` — Vision documents (active); `completed/` subfolder for archived visions
-- `.claude/PRPs/.counters.json` — Global artifact numbering counters
 - `.claude/settings.local.json` — Tool permissions
+
+PRP artifacts (plans, PRDs, visions, reports, investigations, `.counters.json`) live at the top-level `PRPs/` directory, not under `.claude/`.
 
 ### Template-Based Methodology
 
@@ -80,10 +79,10 @@ All three execution paths share the same **completion protocol**:
 Visions sit above PRDs and capture strategic objectives for major milestones:
 
 - **One active vision** per project at a time
-- PRDs link to visions via `--vision` flag: `/prp-prd --vision .claude/PRPs/visions/V001-name.vision.md`
+- PRDs link to visions via `--vision` flag: `/prp-prd --vision PRPs/visions/V001-name.vision.md`
 - Vision's PRD Tracker is automatically updated when PRDs are created under it
-- Completed visions move to `.claude/PRPs/visions/completed/`
-- Stored in `.claude/PRPs/visions/`
+- Completed visions move to `PRPs/visions/completed/`
+- Stored in `PRPs/visions/`
 
 ### Artifact Numbering System
 
@@ -99,7 +98,7 @@ PRD002-P001             — Plan under standalone PRD
 
 - Numbering is global per project (counters never reset)
 - Numbers are zero-padded to 3 digits
-- Counter state stored in `.claude/PRPs/.counters.json`
+- Counter state stored in `PRPs/.counters.json`
 - Standalone PRDs and plans (without a vision) get their own sequential number
 
 ### Supporting Commands
@@ -194,8 +193,7 @@ Projects can include a `context-map.md` for external knowledge sources. The `prp
 ```
 PRPs-agentic-sdlc-starter/
   plugins/prp-core/          # THE plugin — all commands, agents, skills, hooks
-  .claude/PRPs/              # Artifact storage (plans, PRDs, visions, reports)
-  PRPs/
+  PRPs/                      # Artifact storage + templates/scripts/ai_docs
     templates/               # PRP templates with validation
     scripts/                 # PRP runner and utilities
     ai_docs/                 # Curated Claude Code documentation
@@ -205,4 +203,7 @@ PRPs-agentic-sdlc-starter/
 ```
 
 <!-- IJFW-MEMORY-START (managed -- do not edit manually) -->
+<ijfw-memory>
+Project memory at .ijfw/memory/. Call `ijfw_memory_prelude` for full context.
+</ijfw-memory>
 <!-- IJFW-MEMORY-END -->

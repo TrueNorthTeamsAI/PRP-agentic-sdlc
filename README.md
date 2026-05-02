@@ -125,7 +125,7 @@ Based on [Geoffrey Huntley's Ralph Wiggum technique](https://ghuntley.com/ralph/
 ### How It Works
 
 ```
-/prp-ralph .claude/PRPs/plans/my-feature.plan.md --max-iterations 20
+/prp-ralph PRPs/plans/my-feature.plan.md --max-iterations 20
 ```
 
 1. Claude implements the plan tasks
@@ -164,7 +164,7 @@ The stop hook must be configured in `.claude/settings.local.json`:
 /prp-plan "add user authentication with JWT"
 
 # Let Ralph loose
-/prp-ralph .claude/PRPs/plans/add-user-auth.plan.md --max-iterations 20
+/prp-ralph PRPs/plans/add-user-auth.plan.md --max-iterations 20
 
 # Cancel if needed
 /prp-ralph-cancel
@@ -190,13 +190,13 @@ When your goal spans multiple PRDs — like building an entire user onboarding e
     ↓
 Interactive discovery (problem space, outcomes, scope, success criteria)
     ↓
-Creates .claude/PRPs/visions/V001-user-onboarding.vision.md
+Creates PRPs/visions/V001-user-onboarding.vision.md
     ↓
-/prp-prd --vision .claude/PRPs/visions/V001-user-onboarding.vision.md "auth system"
+/prp-prd --vision PRPs/visions/V001-user-onboarding.vision.md "auth system"
     ↓
 Creates V001-PRD001-auth-system.prd.md (linked to vision, tracker auto-updated)
     ↓
-/prp-plan .claude/PRPs/prds/V001-PRD001-auth-system.prd.md
+/prp-plan PRPs/prds/V001-PRD001-auth-system.prd.md
     ↓
 Creates V001-PRD001-P001-auth-phase-1.plan.md
     ↓
@@ -209,7 +209,7 @@ Repeat for more PRDs and phases under the same vision
 - One active vision per project at a time
 - Git strategy is a project-level setting in CLAUDE.md (not per-vision or per-PRD)
 - PRDs reference the vision by link, not content duplication
-- Completed visions move to `.claude/PRPs/visions/completed/`
+- Completed visions move to `PRPs/visions/completed/`
 
 ### Large Features: PRD → Plan → Execute
 
@@ -218,14 +218,14 @@ Repeat for more PRDs and phases under the same vision
     ↓
 Creates PRD with Implementation Phases table (PRD001-user-auth.prd.md)
     ↓
-/prp-plan .claude/PRPs/prds/PRD001-user-auth.prd.md
+/prp-plan PRPs/prds/PRD001-user-auth.prd.md
     ↓
 Auto-selects next pending phase, creates plan (PRD001-P001-auth-phase-1.plan.md)
     ↓
 Choose ONE execution path:
-  /prp-implement .claude/PRPs/plans/PRD001-P001-auth-phase-1.plan.md   ← sequential
-  /prp-ralph .claude/PRPs/plans/PRD001-P001-auth-phase-1.plan.md       ← autonomous
-  /build-with-agent-team .claude/PRPs/plans/PRD001-P001-auth-phase-1.plan.md  ← parallel (Opus)
+  /prp-implement PRPs/plans/PRD001-P001-auth-phase-1.plan.md   ← sequential
+  /prp-ralph PRPs/plans/PRD001-P001-auth-phase-1.plan.md       ← autonomous
+  /build-with-agent-team PRPs/plans/PRD001-P001-auth-phase-1.plan.md  ← parallel (Opus)
     ↓
 Executes plan, updates PRD progress, archives plan, commits per project git strategy
     ↓
@@ -237,7 +237,7 @@ Repeat /prp-plan for next phase
 ```
 /prp-plan "add pagination to the API"
     ↓
-/prp-implement .claude/PRPs/plans/PRD000-P001-add-pagination.plan.md
+/prp-implement PRPs/plans/PRD000-P001-add-pagination.plan.md
 ```
 
 ### Bug Fixes: Issue Workflow
@@ -264,16 +264,16 @@ PRD002-P001             — Plan under standalone PRD
 
 - Numbering is global per project (counters never reset)
 - Numbers are zero-padded to 3 digits
-- Counter state tracked in `.claude/PRPs/.counters.json`
+- Counter state tracked in `PRPs/.counters.json`
 
 ---
 
 ## Artifacts Structure
 
-All artifacts are stored in `.claude/PRPs/`:
+All artifacts are stored in `PRPs/`:
 
 ```
-.claude/PRPs/
+PRPs/
 ├── .counters.json     # Global artifact numbering counters
 ├── visions/           # Vision documents (active)
 │   └── completed/     # Archived completed visions
@@ -322,13 +322,12 @@ PRDs include an Implementation Phases table for tracking progress:
 your-project/
 ├── .claude/
 │   ├── commands/prp-core/   # PRP commands
-│   ├── PRPs/                # Generated artifacts
-│   │   ├── .counters.json   # Artifact numbering counters
-│   │   ├── visions/         # Vision documents
-│   │   ├── prds/            # PRD documents
-│   │   └── plans/           # Implementation plans
 │   └── agents/              # Custom subagents
-├── PRPs/
+├── PRPs/                    # Generated artifacts + templates
+│   ├── .counters.json       # Artifact numbering counters
+│   ├── visions/             # Vision documents
+│   ├── prds/                # PRD documents
+│   ├── plans/               # Implementation plans
 │   ├── templates/           # PRP templates (including vision.md)
 │   └── ai_docs/             # Library documentation
 ├── CLAUDE.md                # Project-specific guidelines

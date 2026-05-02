@@ -246,9 +246,9 @@ Ask final clarifying questions:
 
 ### 7.0 Numbering and Filename
 
-1. Read `.claude/PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
+1. Read `PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
 2. Increment the `prd` counter by 1.
-3. Write updated counters back to `.claude/PRPs/.counters.json` (use Write tool).
+3. Write updated counters back to `PRPs/.counters.json` (use Write tool).
 4. Zero-pad the new number to 3 digits (e.g., `3` → `003`).
 5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
 
@@ -256,9 +256,9 @@ Ask final clarifying questions:
 - If `VISION_PATH` is set (vision-linked): `V{VNN}-PRD{NNN}-{kebab-case-name}.prd.md` (e.g., `V001-PRD003-auth-middleware.prd.md`)
 - If standalone (no vision): `PRD{NNN}-{kebab-case-name}.prd.md` (e.g., `PRD004-search-api.prd.md`)
 
-**Output path**: `.claude/PRPs/prds/{numbered-filename}`
+**Output path**: `PRPs/prds/{numbered-filename}`
 
-Create directory if needed: `mkdir -p .claude/PRPs/prds`
+Create directory if needed: `mkdir -p PRPs/prds`
 
 ### PRD Template
 
@@ -276,7 +276,7 @@ Create directory if needed: `mkdir -p .claude/PRPs/prds`
 | Scope | [Scope Boundaries]({relative-path-to-vision-file}#scope-boundaries) |
 ```
 
-Anchors use GitHub-style slugs: lowercase, spaces→hyphens, strip special chars (e.g., `Problem / Opportunity` → `#problem--opportunity`). The relative path goes from the PRD's location (`.claude/PRPs/prds/`) to the vision file (`.claude/PRPs/visions/`), typically `../visions/{vision-filename}`.
+Anchors use GitHub-style slugs: lowercase, spaces→hyphens, strip special chars (e.g., `Problem / Opportunity` → `#problem--opportunity`). The relative path goes from the PRD's location (`PRPs/prds/`) to the vision file (`PRPs/visions/`), typically `../visions/{vision-filename}`.
 
 **If `VISION_PATH` is NOT set**, omit the Vision Reference section entirely.
 
@@ -526,7 +526,7 @@ After generating the PRD file (and CLAUDE.md updates), apply the project's git s
 - **`none`**: No git operations.
 - **`main-only`**: Commit the PRD file on the current branch:
   ```bash
-  git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
+  git add PRPs/prds/{numbered-name}.prd.md PRPs/.counters.json
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
 - **`branch-per-prd`**: Create a feature branch using hierarchical naming and commit:
@@ -536,12 +536,12 @@ After generating the PRD file (and CLAUDE.md updates), apply the project's git s
   # If standalone PRD (no vision):
   git checkout -b feat/{PRD-ID}-{prd-kebab-name}
 
-  git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
+  git add PRPs/prds/{numbered-name}.prd.md PRPs/.counters.json
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
 - **`branch-per-phase`**: Commit on base branch (phase branches created later by prp-plan):
   ```bash
-  git add .claude/PRPs/prds/{numbered-name}.prd.md .claude/PRPs/.counters.json
+  git add PRPs/prds/{numbered-name}.prd.md PRPs/.counters.json
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
 
@@ -558,7 +558,7 @@ After generating, report:
 ```markdown
 ## PRD Created
 
-**File**: `.claude/PRPs/prds/{numbered-name}.prd.md`
+**File**: `PRPs/prds/{numbered-name}.prd.md`
 **PRD ID**: {PRD-ID} (e.g., V001-PRD003 or PRD004)
 
 ### Summary
@@ -593,7 +593,7 @@ After generating, report:
 
 ### To Start Implementation
 
-Run: `/prp-plan .claude/PRPs/prds/{numbered-name}.prd.md`
+Run: `/prp-plan PRPs/prds/{numbered-name}.prd.md`
 
 This will automatically select the next pending phase and create an implementation plan.
 ```
@@ -628,7 +628,7 @@ This will automatically select the next pending phase and create an implementati
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│  GENERATE: Write PRD to .claude/PRPs/prds/              │
+│  GENERATE: Write PRD to PRPs/prds/              │
 └─────────────────────────────────────────────────────────┘
 ```
 

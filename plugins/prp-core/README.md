@@ -80,11 +80,11 @@ Agents are invoked automatically by `/prp-review-agents` or manually via Task to
     ↓
 Creates PRD with Implementation Phases table
     ↓
-/prp-plan .claude/PRPs/prds/user-auth.prd.md
+/prp-plan PRPs/prds/user-auth.prd.md
     ↓
 Auto-selects next pending phase, creates plan
     ↓
-/prp-implement .claude/PRPs/plans/user-auth-phase-1.plan.md
+/prp-implement PRPs/plans/user-auth-phase-1.plan.md
     ↓
 Executes plan, updates PRD progress, archives plan
     ↓
@@ -96,7 +96,7 @@ Repeat /prp-plan for next phase
 ```
 /prp-plan "add pagination to the API"
     ↓
-/prp-implement .claude/PRPs/plans/add-pagination.plan.md
+/prp-implement PRPs/plans/add-pagination.plan.md
 ```
 
 ### Bug Fixes: Issue Workflow
@@ -156,10 +156,10 @@ Add to your project's `.claude/settings.json`:
 
 ## Artifacts Structure
 
-All artifacts are stored in `.claude/PRPs/`:
+All artifacts are stored in `PRPs/`:
 
 ```
-.claude/PRPs/
+PRPs/
 ├── prds/              # Product requirement documents
 ├── plans/             # Implementation plans
 │   └── completed/     # Archived completed plans

@@ -198,26 +198,26 @@ Ask these questions:
 
 ### 8.1 Counter Management
 
-1. Use the **Read** tool to read `.claude/PRPs/.counters.json`. If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
+1. Use the **Read** tool to read `PRPs/.counters.json`. If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
 2. Increment the `vision` counter by 1.
-3. Use the **Write** tool to write the updated JSON back to `.claude/PRPs/.counters.json`.
+3. Use the **Write** tool to write the updated JSON back to `PRPs/.counters.json`.
 4. Zero-pad the new number to 3 digits for the filename (e.g., `1` → `001`).
 5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
 
 ### 8.2 Generate Vision Document
 
-1. Create directory: `mkdir -p .claude/PRPs/visions`
+1. Create directory: `mkdir -p PRPs/visions`
 2. Generate filename: `V{NNN}-{kebab-case-name}.vision.md` (e.g., `V001-user-onboarding.vision.md`)
 3. Fill in the vision template (from `plugins/prp-core/templates/vision.md`) with discovery answers:
    - Replace all `{placeholder}` fields with actual content from phases 1-7
    - Fill `id` frontmatter with `V{NNN}` (e.g., `V001`)
    - Fill `created` frontmatter with current ISO timestamp
    - The PRD Tracker starts empty or with preliminary PRDs if the user mentioned specific features during discovery
-4. Write the file to `.claude/PRPs/visions/V{NNN}-{kebab-case-name}.vision.md`
+4. Write the file to `PRPs/visions/V{NNN}-{kebab-case-name}.vision.md`
 
 ### 8.3 Check for Existing Active Vision
 
-Before writing, scan `.claude/PRPs/visions/` for any existing `.vision.md` files (excluding `completed/` subdirectory). If an active vision exists, warn the user:
+Before writing, scan `PRPs/visions/` for any existing `.vision.md` files (excluding `completed/` subdirectory). If an active vision exists, warn the user:
 
 > **Warning**: There is already an active vision: `{existing-vision-file}`. Only one active vision is recommended per project. Do you want to proceed anyway, or complete/archive the existing vision first?
 
@@ -228,7 +228,7 @@ Before writing, scan `.claude/PRPs/visions/` for any existing `.vision.md` files
 ## Phase 8.5: GIT - Commit Vision Document
 
 ```bash
-git add .claude/PRPs/visions/V{NNN}-{name}.vision.md .claude/PRPs/.counters.json
+git add PRPs/visions/V{NNN}-{name}.vision.md PRPs/.counters.json
 git commit -m "docs: add vision V{NNN} for {feature-name}"
 git push -u origin HEAD
 ```
@@ -244,7 +244,7 @@ After generating, report:
 ```markdown
 ## Vision Created
 
-**File**: `.claude/PRPs/visions/V{NNN}-{name}.vision.md`
+**File**: `PRPs/visions/V{NNN}-{name}.vision.md`
 **Vision ID**: V{NNN}
 **Title**: {Vision Title}
 
@@ -276,7 +276,7 @@ After generating, report:
 ### Next Step
 
 Create PRDs under this vision:
-Run: `/prp-prd --vision .claude/PRPs/visions/V{NNN}-{name}.vision.md "feature idea"`
+Run: `/prp-prd --vision PRPs/visions/V{NNN}-{name}.vision.md "feature idea"`
 ```
 
 ---
@@ -317,7 +317,7 @@ Run: `/prp-prd --vision .claude/PRPs/visions/V{NNN}-{name}.vision.md "feature id
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│  GENERATE: Write vision to .claude/PRPs/visions/        │
+│  GENERATE: Write vision to PRPs/visions/        │
 └─────────────────────────────────────────────────────────┘
 ```
 

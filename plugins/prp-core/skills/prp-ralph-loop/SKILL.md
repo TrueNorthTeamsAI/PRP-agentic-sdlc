@@ -38,7 +38,7 @@ The state file uses YAML frontmatter followed by a progress log:
 ---
 iteration: 3
 max_iterations: 10
-plan_path: ".claude/PRPs/plans/add-feature.md"
+plan_path: "PRPs/plans/add-feature.md"
 started_at: "2024-01-12T10:00:00Z"
 ---
 
@@ -177,8 +177,8 @@ This exact string signals that the Ralph loop should end.
 
 Before signaling completion, you MUST run the completion protocol from the `prp-ralph` command:
 
-1. **Update Source PRD** — Find the source PRD (from plan metadata, inline reference, or directory scan). Update the phase status from `in-progress` to `complete`. If all PRD phases are now complete, archive the PRD to `.claude/PRPs/prds/completed/`.
-2. **Archive the plan** to `.claude/PRPs/plans/completed/`
+1. **Update Source PRD** — Find the source PRD (from plan metadata, inline reference, or directory scan). Update the phase status from `in-progress` to `complete`. If all PRD phases are now complete, archive the PRD to `PRPs/prds/completed/`.
+2. **Archive the plan** to `PRPs/plans/completed/`
 3. **Run git operations** per the project's git strategy (from `CLAUDE.md`)
 4. **Clean up state** — remove `.claude/prp-ralph.state.md`
 
@@ -310,12 +310,12 @@ Check if edited directories have AGENTS.md files. Add learnings that help future
 When a Ralph loop completes successfully, the learnings should be:
 
 1. **Consolidated** - Important patterns extracted
-2. **Archived** - Full progress log saved to `.claude/PRPs/ralph-archives/`
+2. **Archived** - Full progress log saved to `PRPs/ralph-archives/`
 3. **Integrated** - Key learnings added to CLAUDE.md or AGENTS.md
 
 Archive format:
 ```
-.claude/PRPs/ralph-archives/
+PRPs/ralph-archives/
 └── YYYY-MM-DD-feature-name/
     ├── state.md        # Final state file
     ├── plan.md         # The executed plan

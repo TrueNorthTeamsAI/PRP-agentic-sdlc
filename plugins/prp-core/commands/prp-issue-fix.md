@@ -33,7 +33,7 @@ Execute the implementation plan from `/prp-issue-investigate`:
 
 ```bash
 # Look for artifact
-ls .claude/PRPs/issues/issue-{number}.md
+ls PRPs/issues/issue-{number}.md
 ```
 
 **If input is a path**:
@@ -60,7 +60,7 @@ cat {artifact-path}
 **If artifact not found:**
 
 ```
-❌ Artifact not found at .claude/PRPs/issues/issue-{number}.md
+❌ Artifact not found at PRPs/issues/issue-{number}.md
 
 Run `/prp-issue-investigate {number}` first to create the implementation plan.
 ```
@@ -393,7 +393,7 @@ Fixes #{number}
 
 ### Implementation followed artifact:
 
-`.claude/PRPs/issues/issue-{number}.md`
+`PRPs/issues/issue-{number}.md`
 
 ### Deviations from plan:
 
@@ -492,14 +492,14 @@ EOF
 ### 9.1 Move Artifact to Completed
 
 ```bash
-mkdir -p .claude/PRPs/issues/completed
-mv .claude/PRPs/issues/issue-{number}.md .claude/PRPs/issues/completed/
+mkdir -p PRPs/issues/completed
+mv PRPs/issues/issue-{number}.md PRPs/issues/completed/
 ```
 
 ### 9.2 Commit and Push Archive
 
 ```bash
-git add .claude/PRPs/issues/
+git add PRPs/issues/
 git commit -m "Archive investigation for issue #{number}"
 git push
 ```
@@ -541,7 +541,7 @@ git push
 
 ### Artifact
 
-📄 Archived to `.claude/PRPs/issues/completed/issue-{number}.md`
+📄 Archived to `PRPs/issues/completed/issue-{number}.md`
 
 ### Next Steps
 

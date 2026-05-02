@@ -45,7 +45,7 @@ Create one first:
   /prp-prd "your product idea"           # Creates PRD with phases
 
 Then run:
-  /prp-ralph .claude/PRPs/plans/your-feature.plan.md --max-iterations 20
+  /prp-ralph PRPs/plans/your-feature.plan.md --max-iterations 20
 ```
 
 ### 1.3 Verify File Exists
@@ -80,7 +80,7 @@ Create `.claude/prp-ralph.state.md`:
 
 ```bash
 mkdir -p .claude
-mkdir -p .claude/PRPs/ralph-archives
+mkdir -p PRPs/ralph-archives
 ```
 
 Write state file with this structure:
@@ -305,7 +305,7 @@ ALL of these must be true:
 
 1. **Generate Implementation Report**
 
-   Create `.claude/PRPs/reports/{plan-name}-report.md`:
+   Create `PRPs/reports/{plan-name}-report.md`:
 
    ```markdown
    # Implementation Report
@@ -345,7 +345,7 @@ ALL of these must be true:
    # Create archive directory
    DATE=$(date +%Y-%m-%d)
    PLAN_NAME=$(basename {plan_path} .plan.md)
-   ARCHIVE_DIR=".claude/PRPs/ralph-archives/${DATE}-${PLAN_NAME}"
+   ARCHIVE_DIR="PRPs/ralph-archives/${DATE}-${PLAN_NAME}"
    mkdir -p "$ARCHIVE_DIR"
 
    # Copy state file (with all learnings)
@@ -356,7 +356,7 @@ ALL of these must be true:
 
    # Extract consolidated learnings
    # (The report serves as learnings.md)
-   cp .claude/PRPs/reports/{plan-name}-report.md "$ARCHIVE_DIR/learnings.md"
+   cp PRPs/reports/{plan-name}-report.md "$ARCHIVE_DIR/learnings.md"
    ```
 
 3. **Update CLAUDE.md with Permanent Patterns (if applicable)**
@@ -379,7 +379,7 @@ ALL of these must be true:
 
    1. **Metadata table**: Look for `Source PRD` row in the plan's `## Metadata` table
    2. **Inline reference**: Search the plan file for `Source PRD:` text anywhere
-   3. **PRD directory scan**: If neither found, scan `.claude/PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
+   3. **PRD directory scan**: If neither found, scan `PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
 
    If PRD source found by any method:
    1. Read the PRD file
@@ -394,16 +394,16 @@ ALL of these must be true:
    If a PRD was found and updated, re-read the PRD's Implementation Phases table. If every phase has Status `complete`:
    1. Archive the PRD to the completed folder:
       ```bash
-      mkdir -p .claude/PRPs/prds/completed
-      mv {prd_path} .claude/PRPs/prds/completed/
+      mkdir -p PRPs/prds/completed
+      mv {prd_path} PRPs/prds/completed/
       ```
-   2. Log: "All PRD phases complete — PRD archived to `.claude/PRPs/prds/completed/`"
+   2. Log: "All PRD phases complete — PRD archived to `PRPs/prds/completed/`"
 
 5. **Archive Plan to Completed**
 
    ```bash
-   mkdir -p .claude/PRPs/plans/completed
-   mv {plan_path} .claude/PRPs/plans/completed/
+   mkdir -p PRPs/plans/completed
+   mv {plan_path} PRPs/plans/completed/
    ```
 
 6. **Git Operations**
@@ -495,7 +495,7 @@ The Ralph loop captures learnings that can improve the system:
 - **Progress Log**: Detailed notes on what worked/failed
 
 ### After Completion
-- **Archive**: Full state preserved in `.claude/PRPs/ralph-archives/`
+- **Archive**: Full state preserved in `PRPs/ralph-archives/`
 - **Report**: Consolidated learnings in report file
 - **CLAUDE.md Updates**: Permanent patterns added to project config
 
@@ -509,10 +509,10 @@ Archives can be used to:
 
 ```bash
 # List all Ralph archives
-ls -la .claude/PRPs/ralph-archives/
+ls -la PRPs/ralph-archives/
 
 # Review learnings from a specific run
-cat .claude/PRPs/ralph-archives/2024-01-12-feature-name/learnings.md
+cat PRPs/ralph-archives/2024-01-12-feature-name/learnings.md
 ```
 
 ---

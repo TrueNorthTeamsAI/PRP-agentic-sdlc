@@ -327,12 +327,12 @@ Run any edge case tests specified in the plan.
 ### 5.1 Create Report Directory
 
 ```bash
-mkdir -p .claude/PRPs/reports
+mkdir -p PRPs/reports
 ```
 
 ### 5.2 Generate Report
 
-**Path**: `.claude/PRPs/reports/{plan-name}-report.md`
+**Path**: `PRPs/reports/{plan-name}-report.md`
 
 ```markdown
 # Implementation Report
@@ -479,7 +479,7 @@ Step-by-step instructions to manually run and verify what was implemented.
 
 1. **Metadata table**: Look for `Source PRD` row in the plan's `## Metadata` table
 2. **Inline reference**: Search the plan file for `Source PRD:` text anywhere
-3. **PRD directory scan**: If neither found, scan `.claude/PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
+3. **PRD directory scan**: If neither found, scan `PRPs/prds/` for any `.prd.md` file whose Implementation Phases table references this plan's filename or feature name
 
 **If PRD source found by any method:**
 
@@ -496,16 +496,16 @@ Step-by-step instructions to manually run and verify what was implemented.
 If a PRD was found and updated, re-read the PRD's Implementation Phases table. If every phase has Status `complete`:
 1. Archive the PRD to the completed folder:
    ```bash
-   mkdir -p .claude/PRPs/prds/completed
-   mv {prd_path} .claude/PRPs/prds/completed/
+   mkdir -p PRPs/prds/completed
+   mv {prd_path} PRPs/prds/completed/
    ```
-2. Log: "All PRD phases complete — PRD archived to `.claude/PRPs/prds/completed/`"
+2. Log: "All PRD phases complete — PRD archived to `PRPs/prds/completed/`"
 
 ### 5.4 Archive Plan
 
 ```bash
-mkdir -p .claude/PRPs/plans/completed
-mv $ARGUMENTS .claude/PRPs/plans/completed/
+mkdir -p PRPs/plans/completed
+mv $ARGUMENTS PRPs/plans/completed/
 ```
 
 ### 5.6 Git Operations
@@ -539,7 +539,7 @@ Use the conventional commit type that best matches the work (feat, fix, refactor
 
 **PHASE_5_CHECKPOINT:**
 
-- [ ] Report created at `.claude/PRPs/reports/`
+- [ ] Report created at `PRPs/reports/`
 - [ ] PRD updated (if applicable) - phase marked complete
 - [ ] Plan moved to completed folder
 - [ ] Git operations executed per strategy (or skipped if `none`)
@@ -579,8 +579,8 @@ Use the conventional commit type that best matches the work (feat, fix, refactor
 
 ### Artifacts
 
-- Report: `.claude/PRPs/reports/{name}-report.md`
-- Plan archived to: `.claude/PRPs/plans/completed/`
+- Report: `PRPs/reports/{name}-report.md`
+- Plan archived to: `PRPs/plans/completed/`
 
 {If from PRD:}
 ### PRD Progress

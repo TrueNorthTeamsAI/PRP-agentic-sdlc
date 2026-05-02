@@ -425,9 +425,9 @@ NOT_BUILDING (explicit scope limits):
    - If input was free-form text (no PRD): use `PRD000` as prefix
 
 2. **Assign plan number**:
-   1. Read `.claude/PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
+   1. Read `PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
    2. Increment the `plan` counter by 1.
-   3. Write updated counters back to `.claude/PRPs/.counters.json` (use Write tool).
+   3. Write updated counters back to `PRPs/.counters.json` (use Write tool).
    4. Zero-pad the new number to 3 digits (e.g., `5` → `005`).
    5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
 
@@ -435,9 +435,9 @@ NOT_BUILDING (explicit scope limits):
    - Example: `V001-PRD003-P005-auth-implementation.plan.md`
    - Example: `PRD004-P006-search-indexing.plan.md`
 
-**OUTPUT_PATH**: `.claude/PRPs/plans/{numbered-filename}`
+**OUTPUT_PATH**: `PRPs/plans/{numbered-filename}`
 
-Create directory if needed: `mkdir -p .claude/PRPs/plans`
+Create directory if needed: `mkdir -p PRPs/plans`
 
 **PLAN_STRUCTURE** (the template to fill and save):
 
@@ -853,7 +853,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 </process>
 
 <output>
-**OUTPUT_FILE**: `.claude/PRPs/plans/{numbered-filename}` (e.g., `V001-PRD003-P005-auth-implementation.plan.md`)
+**OUTPUT_FILE**: `PRPs/plans/{numbered-filename}` (e.g., `V001-PRD003-P005-auth-implementation.plan.md`)
 
 **If input was from PRD file**, also update the PRD:
 
@@ -870,7 +870,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 - **`none`**: Skip all git operations.
 - **`main-only`**: Commit on current branch:
   ```bash
-  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git add PRPs/plans/{numbered-filename} PRPs/.counters.json {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 - **`branch-per-prd`**: Verify on the PRD branch. If not, check it out. Then commit:
@@ -878,7 +878,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
   # If vision-linked: feat/{vision-id}/{prd-id}-{prd-kebab-name}
   # If standalone:    feat/{prd-id}-{prd-kebab-name}
   git checkout feat/{...}  # if not already on it
-  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git add PRPs/plans/{numbered-filename} PRPs/.counters.json {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 - **`branch-per-phase`**: Create a phase branch from the PRD branch (or base branch if no PRD branch) using hierarchical naming, and commit:
@@ -886,7 +886,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
   # If vision-linked: feat/{vision-id}/{prd-id}/{plan-id}-{phase-kebab}
   # If standalone:    feat/{prd-id}/{plan-id}-{phase-kebab}
   git checkout -b feat/{...}
-  git add .claude/PRPs/plans/{numbered-filename} .claude/PRPs/.counters.json {prd-file-path if updated}
+  git add PRPs/plans/{numbered-filename} PRPs/.counters.json {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 
@@ -895,7 +895,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 ```markdown
 ## Plan Created
 
-**File**: `.claude/PRPs/plans/{numbered-filename}`
+**File**: `PRPs/plans/{numbered-filename}`
 
 {If from PRD:}
 **Source PRD**: `{prd-file-path}`
@@ -936,7 +936,7 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 **Confidence Score**: {1-10}/10 for one-pass implementation success
 - {Rationale for score}
 
-**Next Step**: To execute, run: `/prp-implement .claude/PRPs/plans/{numbered-filename}`
+**Next Step**: To execute, run: `/prp-implement PRPs/plans/{numbered-filename}`
 ````
 
 </output>

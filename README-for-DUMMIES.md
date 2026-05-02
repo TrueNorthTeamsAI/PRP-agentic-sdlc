@@ -50,9 +50,9 @@ When your goal spans multiple PRDs — like "build a complete user onboarding ex
     ↓
 Asks strategic questions (problem, outcomes, scope, success criteria)
     ↓
-Creates vision doc in .claude/PRPs/visions/V001-user-onboarding.vision.md
+Creates vision doc in PRPs/visions/V001-user-onboarding.vision.md
     ↓
-/prp-prd --vision .claude/PRPs/visions/V001-user-onboarding.vision.md "auth system"
+/prp-prd --vision PRPs/visions/V001-user-onboarding.vision.md "auth system"
     ↓
 Creates PRD linked to vision (V001-PRD001-auth-system.prd.md)
 Vision's PRD Tracker auto-updates
@@ -73,16 +73,16 @@ A vision captures the "why behind the why" — the strategic layer that gives PR
 ```
 /prp-prd "user authentication system"
     ↓
-Creates PRD with phases (stored in .claude/PRPs/prds/PRD001-user-auth.prd.md)
+Creates PRD with phases (stored in PRPs/prds/PRD001-user-auth.prd.md)
     ↓
-/prp-plan .claude/PRPs/prds/PRD001-user-auth.prd.md
+/prp-plan PRPs/prds/PRD001-user-auth.prd.md
     ↓
 Creates implementation plan for next phase
     ↓
 Choose ONE execution path:
-  /prp-implement .claude/PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md   ← step-by-step
-  /prp-ralph .claude/PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md       ← autonomous
-  /build-with-agent-team .claude/PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md  ← parallel (Opus)
+  /prp-implement PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md   ← step-by-step
+  /prp-ralph PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md       ← autonomous
+  /build-with-agent-team PRPs/plans/PRD001-P001-user-auth-phase-1.plan.md  ← parallel (Opus)
     ↓
 Executes plan, updates PRD status, archives plan, commits per git strategy
     ↓
@@ -96,7 +96,7 @@ Skip the PRD. Go straight to a plan:
 ```
 /prp-plan "add pagination to the API"
     ↓
-/prp-implement .claude/PRPs/plans/add-pagination.plan.md
+/prp-implement PRPs/plans/add-pagination.plan.md
 ```
 
 ### For Bug Fixes (GitHub Issues)
@@ -124,7 +124,7 @@ After creating a plan, you have three execution paths. All three share the same 
 ### 1. Sequential (`/prp-implement`) — You Watch
 
 ```
-/prp-implement .claude/PRPs/plans/my-feature.plan.md
+/prp-implement PRPs/plans/my-feature.plan.md
 ```
 
 Step-by-step execution. You see each task, can intervene, and approve as it goes. Best for learning or high-stakes changes.
@@ -132,7 +132,7 @@ Step-by-step execution. You see each task, can intervene, and approve as it goes
 ### 2. Autonomous (`/prp-ralph`) — Go Make Coffee
 
 ```
-/prp-ralph .claude/PRPs/plans/my-feature.plan.md --max-iterations 20
+/prp-ralph PRPs/plans/my-feature.plan.md --max-iterations 20
 ```
 
 Runs in a loop:
@@ -147,7 +147,7 @@ Runs in a loop:
 ### 3. Parallel (`/build-with-agent-team`) — Multiple Agents
 
 ```
-/build-with-agent-team .claude/PRPs/plans/my-feature.plan.md
+/build-with-agent-team PRPs/plans/my-feature.plan.md
 ```
 
 Spawns multiple agents (frontend, backend, database, etc.) that build in parallel. A lead agent coordinates contracts between them. **Requires Opus 4.6 model.**
@@ -189,14 +189,14 @@ PRD002                  — Standalone PRD (no vision)
 PRD002-P001             — Plan under standalone PRD
 ```
 
-Numbers are global (never reset) and tracked in `.claude/PRPs/.counters.json`.
+Numbers are global (never reset) and tracked in `PRPs/.counters.json`.
 
 ---
 
 ## Where Stuff Gets Saved
 
 ```
-.claude/PRPs/
+PRPs/
 ├── visions/           # Vision documents
 │   └── completed/     # Archived completed visions
 ├── prds/              # PRD documents
@@ -238,7 +238,7 @@ Creates a detailed implementation plan with tasks and validation commands.
 ### "Just build it"
 
 ```bash
-/prp-ralph .claude/PRPs/plans/like-button.plan.md --max-iterations 15
+/prp-ralph PRPs/plans/like-button.plan.md --max-iterations 15
 ```
 
 Autonomous execution until done.

@@ -27,7 +27,7 @@ Design a dynamic team of research agents and a structured research plan for any 
 |----------|--------|---------|
 | `$ARGUMENTS` | User input | — (required) |
 | `ORCHESTRATION` | `--orchestration "..."` flag in $ARGUMENTS | Empty (auto-compose) |
-| `OUTPUT_DIR` | Fixed | `.claude/PRPs/research-plans/` |
+| `OUTPUT_DIR` | Fixed | `PRPs/research-plans/` |
 
 ---
 
@@ -273,7 +273,7 @@ Identify shared standards across all researchers:
 ### 6.1 Create Output Directory
 
 ```bash
-mkdir -p .claude/PRPs/research-plans
+mkdir -p PRPs/research-plans
 ```
 
 ### 6.2 Determine Output Filename
@@ -282,14 +282,14 @@ Convert the research topic to kebab-case, truncate to 50 chars max:
 - "What are the best approaches for real-time collaboration?" → `real-time-collaboration`
 - "Compare React vs Vue vs Svelte for enterprise apps" → `react-vs-vue-vs-svelte-enterprise`
 
-**Output path**: `.claude/PRPs/research-plans/{topic-slug}.research-plan.md`
+**Output path**: `PRPs/research-plans/{topic-slug}.research-plan.md`
 
 ### 6.3 Write State Sentinel
 
 Write the output path to `.claude/prp-research-team.state` so the Stop hook can validate:
 
 ```
-.claude/PRPs/research-plans/{topic-slug}.research-plan.md
+PRPs/research-plans/{topic-slug}.research-plan.md
 ```
 
 Just the file path, one line, no extra content.

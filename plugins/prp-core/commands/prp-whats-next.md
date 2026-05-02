@@ -78,7 +78,7 @@ Then re-run `/prp-core:prp-whats-next`.
 
 ### 1.5.4 Also Check .counters.json
 
-If artifacts exist but `.claude/PRPs/.counters.json` does not, include it in the warning:
+If artifacts exist but `PRPs/.counters.json` does not, include it in the warning:
 
 > `.counters.json` is missing. The validate command will also create this file.
 
@@ -93,19 +93,19 @@ If artifacts exist but `.claude/PRPs/.counters.json` does not, include it in the
 Scan the PRP directory tree for all artifacts:
 
 ```
-.claude/PRPs/visions/*.vision.md          → Active visions
-.claude/PRPs/visions/completed/*.vision.md → Completed visions
-.claude/PRPs/prds/*.prd.md                → Active PRDs
-.claude/PRPs/prds/completed/*.prd.md      → Completed PRDs
-.claude/PRPs/plans/*.plan.md              → Active plans
-.claude/PRPs/plans/completed/*.plan.md    → Completed plans
+PRPs/visions/*.vision.md          → Active visions
+PRPs/visions/completed/*.vision.md → Completed visions
+PRPs/prds/*.prd.md                → Active PRDs
+PRPs/prds/completed/*.prd.md      → Completed PRDs
+PRPs/plans/*.plan.md              → Active plans
+PRPs/plans/completed/*.plan.md    → Completed plans
 ```
 
-Also check for `.claude/PRPs/.counters.json` to understand numbering context.
+Also check for `PRPs/.counters.json` to understand numbering context.
 
 **If NO artifacts exist at all**, report:
 
-> No PRP artifacts found in `.claude/PRPs/`. Start by creating a vision or PRD:
+> No PRP artifacts found in `PRPs/`. Start by creating a vision or PRD:
 > ```
 > /prp-core:prp-vision "your objective"
 > /prp-core:prp-prd "your feature idea"

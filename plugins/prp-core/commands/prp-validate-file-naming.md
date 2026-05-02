@@ -6,7 +6,7 @@ description: Validate and fix PRP artifact numbering (PRDs, plans, reports) and 
 
 ## Objective
 
-Scan all PRP artifacts in `.claude/PRPs/`, ensure they follow the hierarchical numbering convention (`PRD{NNN}`, `PRD{NNN}-P{NNN}`), fix any filenames that don't comply, update all internal cross-references, and sync `.counters.json`.
+Scan all PRP artifacts in `PRPs/`, ensure they follow the hierarchical numbering convention (`PRD{NNN}`, `PRD{NNN}-P{NNN}`), fix any filenames that don't comply, update all internal cross-references, and sync `.counters.json`.
 
 ---
 
@@ -36,9 +36,9 @@ The prp-core numbering convention:
 Read the current state of all PRP artifact directories:
 
 ```bash
-find .claude/PRPs -type f -name "*.md" | sort
-find .claude/PRPs/ralph-archives -type d -mindepth 1 -maxdepth 1 | sort
-cat .claude/PRPs/.counters.json
+find PRPs -type f -name "*.md" | sort
+find PRPs/ralph-archives -type d -mindepth 1 -maxdepth 1 | sort
+cat PRPs/.counters.json
 ```
 
 Build an inventory of every artifact, noting:
@@ -128,7 +128,7 @@ RENAME: prds/old-name.prd.md → prds/PRD001-new-name.prd.md
 Search all vision and PRD files for references to plan or PRD filenames and update them:
 
 ```bash
-grep -rn "\.plan\.md\|\.prd\.md\|PRPs/plans\|PRPs/prds" .claude/PRPs/prds/ .claude/PRPs/visions/ 2>/dev/null
+grep -rn "\.plan\.md\|\.prd\.md\|PRPs/plans\|PRPs/prds" PRPs/prds/ PRPs/visions/ 2>/dev/null
 ```
 
 For each match:
@@ -198,4 +198,4 @@ After:  {"vision": 0, "prd": 3, "plan": 3}
 - **Preserve slugs** — keep the descriptive part of filenames intact (only add/fix the prefix)
 - **Global plan counter** — P numbers are unique across the whole project, not per-PRD
 - **Superseded plans** get a `-draft` suffix but keep the same P number as the plan that replaced them (since they share the same phase)
-- **Reports directory** is `.claude/PRPs/reports/`, NOT `.claude/PRPs/plans/reports/`
+- **Reports directory** is `PRPs/reports/`, NOT `PRPs/plans/reports/`

@@ -16,7 +16,7 @@ created: "{timestamp}"
   LIFECYCLE:
     - Only ONE vision is active per project at a time
     - The PRD Tracker section is the only "living" part — update it as PRDs are created
-    - When all PRDs are complete, move this file to .claude/PRPs/visions/completed/
+    - When all PRDs are complete, move this file to PRPs/visions/completed/
     - Numbers are never reused
 
   USAGE:
