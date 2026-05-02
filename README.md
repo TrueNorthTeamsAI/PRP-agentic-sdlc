@@ -321,18 +321,20 @@ PRDs include an Implementation Phases table for tracking progress:
 ```
 your-project/
 ├── .claude/
-│   ├── commands/prp-core/   # PRP commands
-│   └── agents/              # Custom subagents
-├── PRPs/                    # Generated artifacts + templates
-│   ├── .counters.json       # Artifact numbering counters
-│   ├── visions/             # Vision documents
-│   ├── prds/                # PRD documents
-│   ├── plans/               # Implementation plans
-│   ├── templates/           # PRP templates (including vision.md)
-│   └── ai_docs/             # Library documentation
-├── CLAUDE.md                # Project-specific guidelines
-└── src/                     # Your source code
+│   ├── settings.local.json    # Permissions
+│   └── rules/                 # Auto-loaded rules (e.g., git-strategy.md)
+├── PRPs/                      # All PRP artifacts
+│   ├── .counters.json         # Artifact numbering counters
+│   ├── visions/               # Vision documents
+│   ├── prds/                  # PRD documents
+│   ├── plans/                 # Implementation plans
+│   ├── investigations/        # Issue investigations
+│   └── research/              # Research reports
+├── CLAUDE.md                  # Project-specific guidelines
+└── src/                       # Your source code
 ```
+
+PRP commands, agents, skills, hooks, templates, and `ai_docs/` are shipped via the `prp-core` plugin and live in the plugin's install directory — they are not part of consumer-project trees.
 
 ---
 
@@ -354,13 +356,13 @@ cd ../project-phase-4 && claude
 
 ## Resources
 
-### Templates (PRPs/templates/)
+### Templates (shipped with plugin)
 
 - `prp_base.md` - Comprehensive PRP template
 - `prp_story_task.md` - Story/task template
 - `prp_planning.md` - Planning template
 
-### AI Documentation (PRPs/ai_docs/)
+### AI Documentation (shipped with plugin)
 
 Curated documentation for Claude Code context injection.
 

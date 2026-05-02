@@ -119,7 +119,7 @@ Creates RCA report with root cause and fix specification
 
 ## Three Ways to Execute a Plan
 
-After creating a plan, you have three execution paths. All three share the same completion protocol: update PRD status, update Plane tracking, archive the plan, and commit per the PRD's git strategy.
+After creating a plan, you have three execution paths. All three share the same completion protocol: update PRD status, archive the plan, and commit per the PRD's git strategy.
 
 ### 1. Sequential (`/prp-implement`) — You Watch
 
