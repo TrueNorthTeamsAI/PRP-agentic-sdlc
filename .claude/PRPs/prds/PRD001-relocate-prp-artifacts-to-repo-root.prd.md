@@ -154,7 +154,7 @@ The MVP is the full move plus auto-migration. There's no smaller version that de
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
 | 1 | Plugin path migration | Replace `.claude/PRPs/` with `PRPs/` across all plugin command, skill, template, and script files | complete | - | - | `.claude/PRPs/plans/completed/PRD001-P001-plugin-path-migration.plan.md` |
-| 2 | Migration shim | Build the auto-migration logic that detects v3 layout and runs `git mv` on first command invocation | pending | with 1 | - | - |
+| 2 | Migration shim | Build the auto-migration logic that detects v3 layout and runs `git mv` on first command invocation | in-progress | with 1 | - | `.claude/PRPs/plans/PRD001-P002-migration-shim.plan.md` |
 | 3 | Docs + scaffolding update | Update root CLAUDE.md, READMEs, `init-project` scaffolding, and `claude_md_files/` templates | pending | with 1 | - | - |
 | 4 | Self-migration of this repo | Run the migration on this repo (`PRP-agentic-sdlc` itself) | pending | - | 1, 2, 3 | - |
 | 5 | Release v4.0.0 | Bump to v4.0.0 with full changelog, migration notes, and tag | pending | - | 4 | - |
