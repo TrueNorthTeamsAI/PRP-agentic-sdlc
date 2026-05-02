@@ -3,16 +3,16 @@
 
 Usage:
     # Full workflow
-    uv run .claude/PRPs/scripts/prp_workflow.py "Add JWT authentication"
+    uv run PRPs/scripts/prp_workflow.py "Add JWT authentication"
 
     # With custom PR title
-    uv run .claude/PRPs/scripts/prp_workflow.py "Add JWT authentication" --pr-title "feat: add JWT auth"
+    uv run PRPs/scripts/prp_workflow.py "Add JWT authentication" --pr-title "feat: add JWT auth"
 
     # Start from execute (if PRP already exists)
-    uv run .claude/PRPs/scripts/prp_workflow.py --prp-path .claude/PRPs/features/my-feature.md --skip-create
+    uv run PRPs/scripts/prp_workflow.py --prp-path PRPs/features/my-feature.md --skip-create
 
     # Execute only (no commit/PR)
-    uv run .claude/PRPs/scripts/prp_workflow.py "Add feature" --no-commit --no-pr
+    uv run PRPs/scripts/prp_workflow.py "Add feature" --no-commit --no-pr
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ def run_command(
     """
     cmd = [
         "uv", "run",
-        str(ROOT / ".claude/PRPs/scripts/invoke_command.py"),
+        str(ROOT / "PRPs/scripts/invoke_command.py"),
         command_name,
         arguments,
         "--output-format", output_format
@@ -77,16 +77,16 @@ def extract_prp_path(output: str) -> Optional[str]:
     """Extract PRP file path from prp-core-create output.
 
     Looks for patterns like:
-    - `.claude/PRPs/features/xxx.md`
+    - `PRPs/features/xxx.md`
     - Full path to PRP file
     """
-    # Try to find .claude/PRPs/features/*.md pattern
-    match = re.search(r'\.claude/PRPs/features/[a-z0-9_-]+\.md', output)
+    # Try to find PRPs/features/*.md pattern
+    match = re.search(r'PRPs/features/[a-z0-9_-]+\.md', output)
     if match:
         return match.group(0)
 
     # Try to find quoted path
-    match = re.search(r'`([^`]*\.claude/PRPs/features/[^`]+\.md)`', output)
+    match = re.search(r'`([^`]*PRPs/features/[^`]+\.md)`', output)
     if match:
         return match.group(1)
 
@@ -208,7 +208,7 @@ Examples:
   %(prog)s "Add JWT auth" --pr-title "feat: add JWT authentication system"
 
   # Start from execute (if PRP already exists)
-  %(prog)s --prp-path .claude/PRPs/features/my-feature.md --skip-create
+  %(prog)s --prp-path PRPs/features/my-feature.md --skip-create
 
   # Execute only (no commit/PR)
   %(prog)s "Add feature" --no-commit --no-pr

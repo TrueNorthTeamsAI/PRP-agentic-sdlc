@@ -2,9 +2,9 @@
 """Invoke a Claude Code slash command from Python.
 
 Usage:
-    uv run .claude/PRPs/scripts/invoke_command.py prp-core-create "Add JWT authentication"
-    uv run .claude/PRPs/scripts/invoke_command.py prp-core-execute my-feature --interactive
-    uv run .claude/PRPs/scripts/invoke_command.py .claude/commands/prp-core/prp-core-pr.md "Add auth feature"
+    uv run PRPs/scripts/invoke_command.py prp-core-create "Add JWT authentication"
+    uv run PRPs/scripts/invoke_command.py prp-core-execute my-feature --interactive
+    uv run PRPs/scripts/invoke_command.py plugins/prp-core/commands/prp-pr.md "Add auth feature"
 """
 
 from __future__ import annotations
