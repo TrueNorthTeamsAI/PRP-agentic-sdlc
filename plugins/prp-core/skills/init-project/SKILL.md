@@ -588,3 +588,57 @@ Now run through all phases:
 5. Clone, scaffold CLAUDE.md (with git strategy + base branch), generate .gitignore, README, context-map.md, .mcp.json (Jira), and .claude/rules/git-strategy.md
 6. Commit and push
 7. Report success
+
+---
+
+## Migration Shim (Reference)
+
+**This is the CANONICAL source of truth for the v3 → v4 artifact-path migration shim.** The block below is duplicated verbatim into every artifact-touching command and skill. If you change it here, propagate the change to all consumers (use the grep validation in `PRD001-P002`'s plan to verify uniformity).
+
+`init-project` itself does **NOT** invoke the shim because fresh repos always begin in the FRESH state (neither `.claude/PRPs/` nor `PRPs/` exists). This file hosts the reference text only.
+
+### Canonical Block
+
+```markdown
+## Phase 0: PRE-FLIGHT — Artifact Path Migration
+
+Before any artifact read or write, probe the working tree:
+
+| State | Condition | Action |
+|-------|-----------|--------|
+| FRESH | Neither `.claude/PRPs/` nor `PRPs/` exists | Continue silently |
+| V4    | `PRPs/` exists, `.claude/PRPs/` does not | Continue silently |
+| V3    | `.claude/PRPs/` exists, `PRPs/` does not | Auto-migrate, then continue |
+| BOTH  | Both directories exist | STOP with abort message |
+
+### V3 → V4 Migration
+
+1. Detect git repo: run `git rev-parse --is-inside-work-tree`. If exit 0 → git repo; else plain.
+2. **Git repo path**: from repo root (`git rev-parse --show-toplevel`), run `git mv .claude/PRPs PRPs`. The rename is staged but not committed; the next command-driven `git commit` will include it.
+3. **Non-git path**: run `mv .claude/PRPs PRPs` (Bash) or `Move-Item .claude/PRPs PRPs` (PowerShell).
+4. Print exactly one line:
+   `→ Migrated PRP artifacts: .claude/PRPs/ → PRPs/ (git mv staged for next commit)`
+   (Drop "git mv staged" suffix if non-git.)
+5. Continue with the command's normal flow.
+
+### BOTH State Abort
+
+Print the abort message (see consumer copies for verbatim text) and STOP without modifying either directory.
+
+### Detection Implementation Notes
+
+- Use `test -d .claude/PRPs` and `test -d PRPs` (Bash) or `Test-Path` (PowerShell).
+- Idempotent: safe to run on every command invocation.
+- Does NOT touch `.claude/rules/` or other `.claude/*` content.
+- Run `git mv` from repo root.
+```
+
+### Verification
+
+A unique substring in the canonical block — `→ Migrated PRP artifacts: .claude/PRPs/ → PRPs/` — appears in every consumer file. Run:
+
+```
+Grep pattern="Phase 0: PRE-FLIGHT — Artifact Path Migration" path=plugins/prp-core output_mode=files_with_matches
+```
+
+Expected: 16 files (13 commands + 2 skills + this reference home).

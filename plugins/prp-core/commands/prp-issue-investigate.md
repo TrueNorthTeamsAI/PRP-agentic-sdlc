@@ -9,6 +9,56 @@ argument-hint: <issue-number|url|"description">
 
 ---
 
+## Phase 0: PRE-FLIGHT — Artifact Path Migration
+
+Before any artifact read or write, probe the working tree:
+
+| State | Condition | Action |
+|-------|-----------|--------|
+| FRESH | Neither `.claude/PRPs/` nor `PRPs/` exists | Continue silently |
+| V4    | `PRPs/` exists, `.claude/PRPs/` does not | Continue silently |
+| V3    | `.claude/PRPs/` exists, `PRPs/` does not | Auto-migrate, then continue |
+| BOTH  | Both directories exist | STOP with abort message |
+
+### V3 → V4 Migration
+
+1. Detect git repo: run `git rev-parse --is-inside-work-tree`. If exit 0 → git repo; else plain.
+2. **Git repo path**: from repo root (`git rev-parse --show-toplevel`), run `git mv .claude/PRPs PRPs`. The rename is staged but not committed; the next command-driven `git commit` will include it.
+3. **Non-git path**: run `mv .claude/PRPs PRPs` (Bash) or `Move-Item .claude/PRPs PRPs` (PowerShell).
+4. Print exactly one line:
+   `→ Migrated PRP artifacts: .claude/PRPs/ → PRPs/ (git mv staged for next commit)`
+   (Drop "git mv staged" suffix if non-git.)
+5. Continue with the command's normal flow.
+
+### BOTH State Abort
+
+Print the following and STOP:
+
+```
+STOP: PRP artifact directory is in a partial-migration state.
+
+Both `.claude/PRPs/` and `PRPs/` exist. The migration shim cannot decide which is authoritative.
+
+Resolve by choosing one:
+  # If PRPs/ has the latest work:
+  rm -rf .claude/PRPs
+
+  # If .claude/PRPs/ has the latest work:
+  rm -rf PRPs
+  git mv .claude/PRPs PRPs
+
+Then re-run the command.
+```
+
+### Detection Implementation Notes
+
+- Use `test -d .claude/PRPs` and `test -d PRPs` (Bash) or `Test-Path .claude/PRPs` and `Test-Path PRPs` (PowerShell). Prefer `test -d` since the project workspace is cross-platform.
+- The shim is idempotent: running it twice on the same tree always reaches the same state.
+- The shim does NOT touch `.claude/rules/`, `.claude/settings.local.json`, or any other `.claude/*` content.
+- Run `git mv` from repo root (`git rev-parse --show-toplevel`) so invoking from a subdirectory still works.
+
+---
+
 ## Your Mission
 
 Investigate the issue/problem and produce a comprehensive implementation plan that:
