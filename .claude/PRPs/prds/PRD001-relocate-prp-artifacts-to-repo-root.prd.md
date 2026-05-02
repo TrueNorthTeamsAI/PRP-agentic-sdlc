@@ -156,7 +156,7 @@ The MVP is the full move plus auto-migration. There's no smaller version that de
 | 1 | Plugin path migration | Replace `.claude/PRPs/` with `PRPs/` across all plugin command, skill, template, and script files | complete | - | - | `.claude/PRPs/plans/completed/PRD001-P001-plugin-path-migration.plan.md` |
 | 2 | Migration shim | Build the auto-migration logic that detects v3 layout and runs `git mv` on first command invocation | complete | with 1 | - | `.claude/PRPs/plans/completed/PRD001-P002-migration-shim.plan.md` |
 | 3 | Docs + scaffolding update | Update root CLAUDE.md, READMEs, `init-project` scaffolding, and `claude_md_files/` templates | complete | with 1 | - | `.claude/PRPs/plans/completed/PRD001-P003-docs-and-scaffolding-update.plan.md` |
-| 4 | Self-migration of this repo | Run the migration on this repo (`PRP-agentic-sdlc` itself) | pending | - | 1, 2, 3 | - |
+| 4 | Self-migration of this repo | Run the migration on this repo (`PRP-agentic-sdlc` itself) | in-progress | - | 1, 2, 3 | `.claude/PRPs/plans/PRD001-P004-self-migration-of-this-repo.plan.md` |
 | 5 | Release v4.0.0 | Bump to v4.0.0 with full changelog, migration notes, and tag | pending | - | 4 | - |
 | 6 | Consumer validation | Test migration on `2nd-brain-saas-platform` and `2nd-brain-hieraphical-rag-mcp` | pending | - | 5 | - |
 
