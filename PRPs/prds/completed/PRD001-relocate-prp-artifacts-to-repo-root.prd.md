@@ -158,7 +158,7 @@ The MVP is the full move plus auto-migration. There's no smaller version that de
 | 3 | Docs + scaffolding update | Update root CLAUDE.md, READMEs, `init-project` scaffolding, and `claude_md_files/` templates | complete | with 1 | - | `.claude/PRPs/plans/completed/PRD001-P003-docs-and-scaffolding-update.plan.md` |
 | 4 | Self-migration of this repo | Run the migration on this repo (`PRP-agentic-sdlc` itself) | complete | - | 1, 2, 3 | `PRPs/plans/completed/PRD001-P004-self-migration-of-this-repo.plan.md` |
 | 5 | Release v4.0.0 | Bump to v4.0.0 with full changelog, migration notes, and tag | complete | - | 4 | `PRPs/plans/completed/PRD001-P005-release-v4.0.0.plan.md` |
-| 6 | Consumer validation | Test migration on `2nd-brain-saas-platform` and `2nd-brain-hieraphical-rag-mcp` | in-progress | - | 5 | `PRPs/plans/PRD001-P006-consumer-validation.plan.md` |
+| 6 | Consumer validation | Test migration on `2nd-brain-saas-platform` and `2nd-brain-hieraphical-rag-mcp` | complete | - | 5 | `PRPs/plans/completed/PRD001-P006-consumer-validation.plan.md` |
 
 ### Phase Details
 
