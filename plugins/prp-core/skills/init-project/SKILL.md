@@ -293,6 +293,9 @@ build/
 .vscode/settings.json
 .idea/
 
+# Tooling
+.ijfw/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -329,6 +332,9 @@ build/
 .vscode/settings.json
 .idea/
 
+# Tooling
+.ijfw/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -359,6 +365,9 @@ target/
 .env
 .mcp.json
 
+# Tooling
+.ijfw/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -382,6 +391,9 @@ build/
 .env
 .mcp.json
 
+# Tooling
+.ijfw/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -400,6 +412,9 @@ target/
 .env
 .mcp.json
 
+# Tooling
+.ijfw/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -415,6 +430,9 @@ Thumbs.db
 # IDE
 .vscode/settings.json
 .idea/
+
+# Tooling
+.ijfw/
 
 # OS
 .DS_Store
