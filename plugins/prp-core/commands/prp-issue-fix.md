@@ -340,7 +340,8 @@ Execute any manual verification steps from the artifact.
 ### 6.1 Stage Changes
 
 ```bash
-git add -A
+# Stage specific changed files (prefer over git add -A)
+git add {list of changed files}
 git status  # Review what's being committed
 ```
 
