@@ -33,7 +33,7 @@ Before running reviews:
 | Aspect | Agent | When to Run |
 |--------|-------|-------------|
 | `code` | code-reviewer | Always - general quality and guidelines |
-| `docs` | docs-impact-agent | Almost always - updates stale docs |
+| `docs` | docs-impact-agent | Almost always - identifies stale docs |
 | `tests` | pr-test-analyzer | When test files or tested code changed |
 | `comments` | comment-analyzer | When comments/docstrings added |
 | `errors` | silent-failure-hunter | When error handling changed |
@@ -47,7 +47,7 @@ Before running reviews:
 - `code-reviewer` - Core quality check
 
 **Almost always run** (skip only for trivial PRs):
-- `docs-impact-agent` - Updates project docs
+- `docs-impact-agent` - Identifies stale or missing docs
 
 **Skip docs-impact-agent only when**:
 - Typo-only fixes (comments, strings)
@@ -71,9 +71,9 @@ Before running reviews:
 Run agents one at a time for clear, actionable feedback:
 
 1. `code-reviewer` - Guidelines and bugs
-2. `docs-impact-agent` - Fix stale docs (commits to PR branch)
+2. `docs-impact-agent` - Identify stale or missing docs
 3. Applicable specialist agents based on changes
-4. `code-simplifier` - Final polish (if requested or all reviews pass)
+4. `code-simplifier` - Identify simplification opportunities (if requested or all reviews pass)
 
 ### Parallel (When Requested)
 
@@ -87,7 +87,7 @@ When launching each agent via Task tool:
 > Review PR #<number> for project guideline compliance, bugs, and quality issues. Focus on the diff. Report only high-confidence issues (80+).
 
 **docs-impact-agent**:
-> Review PR #<number> and update any documentation that's affected by these changes. Fix stale docs in CLAUDE.md, README.md, and docs/. If you make updates, commit and push them to the PR branch `<branch-name>`.
+> Review PR #<number> and identify any documentation affected by these changes. Check CLAUDE.md, README.md, and docs/ for stale, incorrect, or missing content. Report findings with specific file locations and suggested fixes. Do not modify files or commit.
 
 **pr-test-analyzer**:
 > Analyze test coverage for PR #<number>. Focus on behavioral coverage, identify critical gaps, rate recommendations by criticality.
@@ -102,7 +102,7 @@ When launching each agent via Task tool:
 > Analyze type design in PR #<number>. Rate encapsulation, invariant expression, usefulness, and enforcement. Focus on new or modified types.
 
 **code-simplifier**:
-> Simplify code in PR #<number> for clarity while preserving functionality. No nested ternaries, prefer explicit over clever. Commit and push improvements to PR branch `<branch-name>`.
+> Identify simplification opportunities in PR #<number> for clarity while preserving functionality. No nested ternaries, prefer explicit over clever. Report findings with before/after suggestions. Do not modify files or commit.
 
 ## Result Aggregation
 
@@ -141,9 +141,9 @@ After all agents complete, aggregate findings:
 - Well-structured error handling
 - Good test coverage for critical paths
 
-### Documentation Updates
-- `CLAUDE.md` - Added new command reference
-- `README.md` - Updated configuration section
+### Documentation Issues
+- `CLAUDE.md` - Stale command reference needs update
+- `README.md` - Configuration section outdated
 
 ### Verdict
 [READY TO MERGE / NEEDS FIXES / CRITICAL ISSUES]
@@ -208,6 +208,5 @@ gh pr comment <PR_NUMBER> --body "<summary>"
 
 - Agents analyze git diff by default (changed files only)
 - Each agent returns detailed report with file:line references
-- docs-impact-agent commits and pushes doc updates to PR branch
-- code-simplifier commits and pushes improvements to PR branch
+- All agents are advisory — they report findings but do not modify files or commit
 - Summary always posted as PR comment when PR number provided
