@@ -12,8 +12,8 @@ This plugin provides a comprehensive workflow for creating, executing, and shipp
 
 | Command | Description |
 |---------|-------------|
-| `/prp-prd` | Interactive PRD generator with implementation phases |
-| `/prp-plan` | Create implementation plan (from PRD or free-form input) |
+| `/prp-prd` | Interactive PRD generator with implementation phases (includes schema-fitness gate, ADR-0001) |
+| `/prp-plan` | Create implementation plan (from PRD or free-form input) (includes schema-dependency gate, ADR-0001) |
 | `/prp-implement` | Execute a plan with validation loops |
 
 ### Issue Workflow
@@ -184,6 +184,40 @@ PRDs include an Implementation Phases table:
 - **Status**: `pending` → `in-progress` → `complete`
 - **Parallel**: Phases that can run concurrently
 - **Depends**: Phases that must complete first
+
+## Schema-Fitness Gate (ADR-0001)
+
+Both `/prp-prd` and `/prp-plan` ship with a gate that enforces the principle **verify what you inherit; do not assume it**.
+
+| Where | What it does | When it blocks |
+|---|---|---|
+| `/prp-prd` Phase 6.5 | Scans the PRD draft and input brief for `table.column` patterns, ORM identifiers, `event_type = 'X'` literals, and SQL fragments. Resolves each against the project's schema files. Emits a "Schema References" section. | Any reference is `UNRESOLVED` or `AMBIGUOUS` |
+| `/prp-plan` Phase 5.5 | Requires every existing table/column the plan reads or writes to be listed with a semantic assumption and a verification citation (test file:line, schema comment, ADR, or manual citation). | Any "Verified by" cell contains `TODO:` |
+
+### Configuration
+
+Schema source detection is configurable per project. Add a `## Schema Sources` section to the project's `CLAUDE.md`:
+
+```markdown
+## Schema Sources
+
+- Drizzle: src/db/schema.ts, src/db/schema/*.ts
+- Prisma: prisma/schema.prisma
+- Raw SQL: db/migrations/*.sql
+```
+
+If `## Schema Sources` is absent, the gate falls back to sane defaults for Drizzle / Prisma / SQLAlchemy / TypeORM / raw SQL migrations. If no schema files exist at all (greenfield), the gate is a no-op.
+
+### Override
+
+Use `--skip-schema-check` to bypass the gate without blocking:
+
+```bash
+/prp-prd --skip-schema-check "feature idea"
+/prp-plan --skip-schema-check PRPs/prds/PRD007-foo.prd.md
+```
+
+The override is recorded in the generated artifact ("⚠ SKIPPED" tags on unverified rows) so PR reviewers see it. Use sparingly — the gate exists to prevent the inheritance-without-verification failure mode documented in ADR-0001 (P019 worked example).
 
 ## PRP Methodology
 

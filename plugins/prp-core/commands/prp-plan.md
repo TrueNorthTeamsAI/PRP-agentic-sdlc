@@ -92,6 +92,10 @@ Then re-run the command.
 
 ## Phase 0: DETECT - Input Type Resolution
 
+**Parse flags first:**
+
+- **`--skip-schema-check`**: If present, set `SKIP_SCHEMA_CHECK=true` and strip the flag from `$ARGUMENTS`. Otherwise, `SKIP_SCHEMA_CHECK=false`. This flag controls the schema-dependency gate in Phase 5.5 — when set, the plan output is not blocked even if "Verified by" cells contain `TODO:`, but the plan is annotated to flag PR-review attention. See ADR-0001.
+
 **Determine input type:**
 
 | Input Pattern | Type | Action |
@@ -466,6 +470,111 @@ NOT_BUILDING (explicit scope limits):
 
 ---
 
+## Phase 5.5: GATE - Existing Schema Dependencies
+
+**Purpose**: Force the plan author to write down every existing table or column the plan reads or writes, the semantic assumption being made, and how that assumption is verified. The plan blocks if any assumption is unverified.
+
+**Reference**: ADR-0001 — Verify inherited contracts before depending on them. The canonical failure mode (P019 in maxtel-eventledger-poc — `event.day_part_id` inherited from WASTE_* with the wrong semantic for SALES_HR) is exactly what this gate exists to catch.
+
+### 5.5.1 Detect schema sources
+
+Read the project's `CLAUDE.md` for a `## Schema Sources` section. Format:
+
+```markdown
+## Schema Sources
+
+- Drizzle: src/db/schema.ts, src/db/schema/*.ts
+- Prisma: prisma/schema.prisma
+- Raw SQL: db/migrations/*.sql
+```
+
+**If present**, use only the listed paths/globs verbatim.
+
+**If absent**, fall back to defaults:
+
+| ORM / format | Default glob |
+|---|---|
+| Drizzle | `**/schema.ts`, `**/schema/*.ts`, `**/db/schema*.ts`, `drizzle/schema*.ts` |
+| Prisma | `prisma/schema.prisma` |
+| SQLAlchemy | `**/models.py`, `**/models/*.py` |
+| TypeORM | `**/entity/*.ts`, `**/entities/*.ts` |
+| Raw SQL migrations | `migrations/*.sql`, `db/migrations/*.sql`, `sql/migrations/*.sql` |
+
+Store the resolved list as `SCHEMA_FILES`.
+
+**No-op condition**: If `SCHEMA_FILES` is empty (greenfield, no schema yet), skip this phase entirely and omit the "Existing Schema Dependencies" section from the plan template.
+
+### 5.5.2 Derive candidate dependencies
+
+Enumerate every existing table/column the plan touches by combining four sources:
+
+1. **Phase 2 (codebase exploration)** — schema files, repository code, ORM identifiers surfaced by `codebase-explorer` and `codebase-analyst`
+2. **Phase 5 (architecture)** — integration points and data-flow traces
+3. **Files to Change list** (Phase 6 draft) — any file marked `UPDATE` against a schema-source path
+4. **Source PRD's `## Schema References` section** (if input was a PRD file) — propagate forward so the plan author confirms each reference
+
+Include reads and writes both. Include the dependency even if this plan does NOT modify the schema — the point is to flag every column the plan depends on for correctness.
+
+### 5.5.3 Author the dependency declaration
+
+For each candidate, the author records three fields:
+
+| Reference | Semantic Assumption | Verified by |
+|---|---|---|
+| `event.day_part_id` | Carries hour-of-day 0–23 for SALES_HR rows | `TODO: verify before merge` |
+| `event_type = 'SALES_HR'` | Enum value exists in the event_type column | `src/db/schema.ts:88 — pgEnum lists SALES_HR` |
+
+**Acceptable `Verified by` values:**
+
+| Citation | Format | Example |
+|---|---|---|
+| Test | `path/to/test.ts:LINE — what it asserts` | `src/event/event.test.ts:42 — asserts day_part_id is in [1,4]` |
+| Schema comment | `schema-file:LINE — comment text` | `src/db/schema.ts:42 — column comment: "hour of day 0–23"` |
+| ADR | `ADR-NNNN` (workspace or per-repo) | `ADR-0007` |
+| Manual + citation | `Manual: {note}; verified at {path or URL}` | `Manual: column semantic confirmed by team; see PRPs/research/R003-event-schema-audit.md` |
+| Unverified placeholder | `TODO: verify before merge` | Allowed at draft time, **blocks plan output unless `--skip-schema-check`** |
+
+A bare assertion ("trust me", "obvious from context") is not acceptable. The citation has to point to something durable.
+
+### 5.5.4 Block on unverified assumptions
+
+Scan the "Existing Schema Dependencies" table the author has filled in. If any "Verified by" cell contains `TODO:` AND `SKIP_SCHEMA_CHECK=false`:
+
+1. Print the offending rows to the user
+2. Print the abort message below
+3. STOP — do not write the plan
+
+```
+STOP: Schema-dependency gate failed.
+
+The plan declares {N} schema dependencies with no verification:
+
+  - {table}.{column}   — TODO: verify before merge
+
+ADR-0001 requires every existing-schema dependency to carry a verification citation (test, schema comment, ADR, or manual citation). A plan that inherits a column without verifying its semantic is the failure mode the gate exists to prevent — see P019 worked example: SALES drilldown collapses 24 hours into 4 buckets because `day_part_id` was inherited from WASTE_* without verification.
+
+Options:
+  1. Write a test that asserts the assumption; cite test file:line in "Verified by"
+  2. Find a schema comment, ADR, or manual research note that documents the semantic; cite it
+  3. Decide the schema needs to grow — capture as an explicit task ahead of the dependent work
+  4. Re-run with --skip-schema-check (logged in plan output, requires PR-review attention)
+
+To override:
+  /prp-plan --skip-schema-check {original arguments}
+```
+
+If `SKIP_SCHEMA_CHECK=true`, do not block — but tag each `TODO:` row with `⚠ SKIPPED` in the rendered plan and add a banner at the top of the "Existing Schema Dependencies" section noting the gate was overridden.
+
+**PHASE_5.5_CHECKPOINT:**
+- [ ] Schema sources detected, or no-op confirmed for greenfield
+- [ ] Every existing table/column the plan reads or writes is listed
+- [ ] Each dependency has a Semantic Assumption stated explicitly
+- [ ] Each dependency has a Verified by citation (test, schema comment, ADR, or manual citation)
+- [ ] No `TODO:` remains in Verified by (or `--skip-schema-check` was passed)
+- [ ] PRD's `## Schema References` rows are carried forward into this table (if input was a PRD)
+
+---
+
 ## Phase 6: GENERATE - Implementation Plan File
 
 ### 6.0 Numbering and Filename
@@ -666,6 +775,30 @@ _If no context-map.md exists or no matches were found, omit this table._
 // COPY THIS PATTERN:
 {actual code snippet from codebase}
 ```
+
+---
+
+## Existing Schema Dependencies
+
+<!--
+  Generated by Phase 5.5 schema-dependency gate. Lists every existing
+  table or column this plan reads or writes — whether or not the plan
+  modifies the schema — with the semantic assumption being made and
+  the citation that verifies it.
+
+  Omit this section only on greenfield projects (no schema files
+  detected at all). If `--skip-schema-check` was used, the gate ran
+  but did not block; rows with TODO are tagged `⚠ SKIPPED` and a
+  banner appears below.
+
+  Reference: ADR-0001 (verify inherited contracts).
+-->
+
+| Reference | Semantic Assumption | Verified by |
+|-----------|---------------------|-------------|
+| `{table.column}` | {What this plan assumes the column represents} | `{path/to/test.ts:LINE — what it asserts}` OR `{schema-file:LINE — comment}` OR `ADR-NNNN` OR `Manual: {note}; verified at {path}` |
+
+_If `--skip-schema-check` was passed, the gate did not block unverified rows. PR reviewers must verify each `⚠ SKIPPED` row manually before merge._
 
 ---
 
@@ -1003,6 +1136,7 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 - [ ] Integration points mapped with specific file paths
 - [ ] Gotchas captured with mitigation strategies
 - [ ] Every task has at least one executable validation command
+- [ ] Existing Schema Dependencies table is present (or section omitted because greenfield), every row has a Verified by citation, no `TODO:` remains unless `--skip-schema-check` was passed (ADR-0001)
 
 **IMPLEMENTATION_READINESS:**
 
@@ -1042,6 +1176,7 @@ To start: `git worktree add -b phase-{X} ../project-phase-{X} && cd ../project-p
 **IMPLEMENTATION_READY**: Tasks executable top-to-bottom without questions, research, or clarification
 **PATTERN_FAITHFUL**: Every new file mirrors existing codebase style exactly
 **VALIDATION_DEFINED**: Every task has executable verification command
+**SCHEMA_VERIFIED**: Existing Schema Dependencies table is filled in — every inherited table/column carries a semantic assumption and a verification citation; gate passed cleanly or `--skip-schema-check` is logged. No-op on greenfield. (ADR-0001)
 **UX_DOCUMENTED**: Before/After transformation is visually clear with data flows
 **JOURNEYS_DEFINED**: User journey files created for new user-facing flows with concrete steps
 **ONE_PASS_TARGET**: Confidence score 8+ indicates high likelihood of first-attempt success
