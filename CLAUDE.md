@@ -177,6 +177,7 @@ Projects can include a `context-map.md` for external knowledge sources. The `prp
 3. **Information Dense**: Use keywords and patterns from the codebase
 4. **Progressive Success**: Start simple, validate, then enhance
 5. **One-Pass Target**: Plans should enable implementation without clarification
+6. **Verify What You Inherit**: Existing tables, columns, and contracts referenced by a PRD or plan must be resolved against the source of truth before being depended on. The schema-fitness gate in `prp-prd` (Phase 6.5) and the schema-dependency gate in `prp-plan` (Phase 5.5) enforce this — both opt-out via `--skip-schema-check`. See ADR-0001 (`docs/decisions/0001-verify-inherited-contracts.md`) and the P019 worked example. Per-project schema source paths configured via a `## Schema Sources` section in the project's CLAUDE.md.
 
 ## Anti-Patterns to Avoid
 
@@ -187,6 +188,7 @@ Projects can include a `context-map.md` for external knowledge sources. The `prp
 - Don't hardcode values that should be config
 - Don't catch all exceptions — be specific
 - Don't duplicate plugin content into `.claude/` directories — edit `plugins/prp-core/` directly
+- Don't reference an existing schema column or contract without verifying it actually exists and means what you think — that's the failure mode the ADR-0001 gate exists to prevent
 
 ## Project Structure
 

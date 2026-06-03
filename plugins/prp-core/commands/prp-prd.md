@@ -82,7 +82,7 @@ Each question set builds on previous answers. Grounding phases validate assumpti
 
 ---
 
-## Phase 0.5: ARGUMENT PARSING - Vision and Input
+## Phase 0.5: ARGUMENT PARSING - Vision, Input, and Flags
 
 **Check if `$ARGUMENTS` contains `--vision {path}`:**
 
@@ -95,6 +95,15 @@ Each question set builds on previous answers. Grounding phases validate assumpti
 4. The remaining text after stripping `--vision {path}` is the feature description (same as today).
 
 **If `--vision` is NOT present**: Proceed as normal. `VISION_PATH` is empty.
+
+**Check if `$ARGUMENTS` contains `--skip-schema-check`:**
+
+1. If present, set `SKIP_SCHEMA_CHECK=true` and strip the flag from the remaining arguments.
+2. Otherwise, `SKIP_SCHEMA_CHECK=false`.
+
+This flag controls the schema-fitness gate in Phase 6.5. When set, unresolved schema references downgrade from blocking → warning, and the PRD output records that the gate was skipped. Use sparingly; the override is logged for PR-review attention. See ADR-0001 for the rationale.
+
+The remaining text after stripping all flags is the feature description.
 
 ---
 
@@ -292,6 +301,124 @@ Ask final clarifying questions:
 
 ---
 
+## Phase 6.5: GATE - Schema Fitness Check
+
+**Purpose**: Surface schema assumptions before they propagate into the PRD. Every PRD that references existing tables or columns must verify the references actually resolve against the project's schema — and record the semantic assumption being made.
+
+**Reference**: ADR-0001 — Verify inherited contracts before depending on them. The P019 worked example (FB-002 → PRD007 → P019 → P022/P023 silently inheriting a non-existent `event.utc_begin` column) is the failure mode this gate exists to prevent.
+
+### 6.5.1 Detect schema sources
+
+Read the project's `CLAUDE.md` and look for a `## Schema Sources` section. The expected format is:
+
+```markdown
+## Schema Sources
+
+- Drizzle: src/db/schema.ts, src/db/schema/*.ts
+- Prisma: prisma/schema.prisma
+- Raw SQL: db/migrations/*.sql
+```
+
+**If `## Schema Sources` is present**, use only the listed paths/globs (verbatim, no merging with defaults).
+
+**If absent**, scan for these default file shapes (use the first format that matches at least one file):
+
+| ORM / format | Default glob |
+|---|---|
+| Drizzle | `**/schema.ts`, `**/schema/*.ts`, `**/db/schema*.ts`, `drizzle/schema*.ts` |
+| Prisma | `prisma/schema.prisma` |
+| SQLAlchemy | `**/models.py`, `**/models/*.py` |
+| TypeORM | `**/entity/*.ts`, `**/entities/*.ts` |
+| Raw SQL migrations | `migrations/*.sql`, `db/migrations/*.sql`, `sql/migrations/*.sql` |
+
+Store the resolved list of schema files as `SCHEMA_FILES`.
+
+**No-op condition**: If `SCHEMA_FILES` is empty (greenfield project, no schema yet), the gate is a no-op. Skip directly to Phase 7 and omit the "Schema References" section from the PRD output.
+
+### 6.5.2 Extract candidate references
+
+Scan the accumulated content (input brief + all Phase 1-6 user answers) for these patterns:
+
+| Pattern | Examples | Notes |
+|---|---|---|
+| `table.column` | `event.day_part_id`, `users.email` | Most common — dotted identifiers in prose or SQL |
+| ORM identifier | `eventLine.lineType`, `salesDim.bucketHour` | Drizzle/Prisma/SQLAlchemy-style — camelCase table refs |
+| `event_type = 'X'` / `type = 'X'` | `event_type = 'SALES_HR'` | String literal that depends on a domain enum existing |
+| Inline SQL fragments | `EXTRACT(HOUR FROM event.utc_begin)` | Identifiers inside SELECT/INSERT/UPDATE fragments |
+
+Ignore obvious false-positives without flagging:
+- URL paths (`/api/v1/users.id`)
+- File paths (`src/db/schema.ts`)
+- TypeScript type members on non-table objects (heuristic: prefix matches no known table name)
+
+Collect each surviving candidate into a list with its source location in the draft.
+
+### 6.5.3 Resolve each reference
+
+For each candidate, search `SCHEMA_FILES` for the table and column:
+
+| Result | Meaning |
+|---|---|
+| **RESOLVED** | Both table and column exist; semantic assumption can be inferred |
+| **UNRESOLVED** | Table exists but column does not, OR table does not exist |
+| **AMBIGUOUS** | Identifier appears in multiple tables and the PRD context does not disambiguate |
+
+For each **RESOLVED** reference, infer the **semantic assumption** the PRD is making — what the column is being used to represent in this PRD's context. (Example: `event.day_part_id` resolves, but the assumed semantic in a SALES_HR context is "hour-of-day 0–23", which may or may not match the column's existing semantic in a WASTE_* context.)
+
+### 6.5.4 Capture the "Schema References" section
+
+Build the section content for inclusion in Phase 7's PRD output:
+
+```markdown
+## Schema References
+
+| Reference | Status | Schema Source | Semantic Assumption |
+|-----------|--------|---------------|---------------------|
+| `event.day_part_id` | RESOLVED | `src/db/schema.ts:42` | Carries hour-of-day 0–23 for SALES_HR rows |
+| `event.utc_begin` | UNRESOLVED | — | Column does not exist in `event` |
+
+_Gate skipped: `--skip-schema-check` flag was passed. PR reviewers should verify each reference manually._
+```
+
+The trailing italicised line appears only if `SKIP_SCHEMA_CHECK=true`.
+
+### 6.5.5 Block on unresolved references
+
+If any reference is **UNRESOLVED** or **AMBIGUOUS** and `SKIP_SCHEMA_CHECK=false`:
+
+1. Print the "Schema References" section to the user
+2. Print the abort message below
+3. STOP — do not write the PRD
+
+```
+STOP: Schema-fitness gate failed.
+
+The PRD references {N} schema identifier(s) that do not resolve against the project's schema files:
+
+  - {table}.{column}   — {reason: column does not exist | table does not exist | ambiguous}
+
+This is exactly the failure mode ADR-0001 was written to prevent: PRDs commit to data that doesn't exist, plans implement around the omission, and the gap surfaces as a production bug. The canonical worked example is P019 in maxtel-eventledger-poc — see ADR-0001.
+
+Options:
+  1. Update the PRD draft to reference columns that actually exist
+  2. Decide the schema needs to grow to accommodate this PRD, and capture that as an explicit phase (Schema extension) in the Implementation Phases table
+  3. Re-run with --skip-schema-check (logged in PRD output, requires PR-review attention)
+
+To override:
+  /prp-prd --skip-schema-check {original arguments}
+```
+
+If `SKIP_SCHEMA_CHECK=true`, do not block — but mark each unresolved reference visibly in the "Schema References" section and continue.
+
+**PHASE_6.5_CHECKPOINT:**
+- [ ] Schema sources detected from CLAUDE.md, or sane defaults applied
+- [ ] All `table.column`, ORM identifier, `type = 'X'`, and inline-SQL patterns extracted
+- [ ] Each reference resolved (RESOLVED / UNRESOLVED / AMBIGUOUS)
+- [ ] "Schema References" section captured for inclusion in PRD output
+- [ ] Unresolved references either fixed in draft, accepted via `--skip-schema-check`, or escalated to a Schema extension phase
+
+---
+
 ## Phase 7: GENERATE - Write PRD
 
 ### 7.0 Numbering and Filename
@@ -368,6 +495,26 @@ We'll know we're right when {measurable outcome}.
 
 - [ ] {Unresolved question 1}
 - [ ] {Unresolved question 2}
+
+---
+
+## Schema References
+
+<!--
+  Generated by Phase 6.5 schema-fitness gate. Lists every existing
+  table/column the PRD draft references, whether it resolved against
+  the project's schema files, and the semantic assumption being made.
+
+  Omit this section only on greenfield projects (no schema files
+  detected at all). If `--skip-schema-check` was used, the gate ran
+  but did not block; see trailing italic note.
+
+  Reference: ADR-0001 (verify inherited contracts).
+-->
+
+| Reference | Status | Schema Source | Semantic Assumption |
+|-----------|--------|---------------|---------------------|
+| {table.column} | RESOLVED / UNRESOLVED / AMBIGUOUS | {file:line or "—"} | {What the PRD assumes this column represents in this context} |
 
 ---
 
@@ -624,6 +771,7 @@ After generating, report:
 | Problem Statement | {Validated/Assumption} |
 | User Research | {Done/Needed} |
 | Technical Feasibility | {Assessed/TBD} |
+| Schema Fitness | {Passed / Skipped (--skip-schema-check) / N/A (greenfield)} |
 | Testing Strategy | {Defined/TBD} |
 | Success Metrics | {Defined/Needs refinement} |
 
@@ -678,6 +826,10 @@ This will automatically select the next pending phase and create an implementati
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
+│  GATE: Schema fitness — references resolve (ADR-0001)   │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
 │  GENERATE: Write PRD to PRPs/prds/              │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -691,6 +843,7 @@ This will automatically select the next pending phase and create an implementati
 - **HYPOTHESIS_CLEAR**: Testable hypothesis with measurable outcome
 - **SCOPE_BOUNDED**: Clear must-haves and explicit out-of-scope
 - **QUESTIONS_ACKNOWLEDGED**: Uncertainties are listed, not hidden
+- **SCHEMA_VERIFIED**: Every existing-table/column reference resolves against the project's schema, with semantic assumption recorded; gate passed cleanly or `--skip-schema-check` is logged. No-op on greenfield. (ADR-0001)
 - **TESTING_STRATEGY_DEFINED**: Unit, e2e, and integration testing approach established
 - **ACTIONABLE**: A skeptic could understand why this is worth building
 - **NUMBERED**: PRD filename uses counter-based numbering from `.counters.json`
