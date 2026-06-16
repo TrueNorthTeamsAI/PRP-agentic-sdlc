@@ -95,6 +95,7 @@ Then re-run the command.
 **Parse flags first:**
 
 - **`--skip-schema-check`**: If present, set `SKIP_SCHEMA_CHECK=true` and strip the flag from `$ARGUMENTS`. Otherwise, `SKIP_SCHEMA_CHECK=false`. This flag controls the schema-dependency gate in Phase 5.5 — when set, the plan output is not blocked even if "Verified by" cells contain `TODO:`, but the plan is annotated to flag PR-review attention. See ADR-0001.
+- **`--skip-mockup-check`**: If present, set `SKIP_MOCKUP_CHECK=true` and strip the flag from `$ARGUMENTS`. Otherwise, `SKIP_MOCKUP_CHECK=false`. This flag controls the mockup-fidelity gate in Phase 5.6 — when set, sections marked `TODO:` in the Mockup Fidelity Checklist do not block plan output, but each unset row is tagged `⚠ SKIPPED` for PR-review attention.
 
 **Determine input type:**
 
@@ -575,6 +576,112 @@ If `SKIP_SCHEMA_CHECK=true`, do not block — but tag each `TODO:` row with `⚠
 
 ---
 
+## Phase 5.6: GATE - Mockup Fidelity Checklist
+
+**Purpose**: Force the plan author to write down, for every mockup the PRD references, **every visible section** of that mockup and the React component / file / pattern that will render it — at what fidelity, with what acceptance signal. The plan blocks if any section is unassigned.
+
+**Why this gate exists**: The recurring failure mode is "mockup provided → agent reads it → agent builds something that functionally works → e2e tests pass on data-testid selectors → agent declares done → reviewer finds entire sections (filter bars, totals rows, slideover content shapes, column subgroups, group-header separators) are missing because the plan never enumerated them". Capturing the section-by-section assignment in the plan is the structural fix that closes that loop. **This is the visual analogue of Phase 5.5's schema-dependency gate.**
+
+**Reference**: Inherits from the PRD's Phase 6.6 Mockup Inventory. If the input PRD has no Mockup Inventory section, treat this gate as a no-op (skip and omit the section from the plan template).
+
+### 5.6.1 Inherit the Mockup Inventory
+
+If `SOURCE_PRD` is set, read the PRD's `## Mockup Inventory` section and extract:
+
+- `MOCKUP_FILES`: list of `(file path, type, fidelity)` triples
+- `SECTION_INVENTORY`: per-file list of sections (`# / Section / Class / Purpose` rows)
+
+If the PRD's Mockup Inventory is absent OR explicitly says "no mockups" — this gate is a no-op. Omit the "Mockup Fidelity Checklist" section from the plan template and proceed to Phase 6.
+
+If `SOURCE_PRD` is unset (free-form input), scan the project's mockup folders (using the same detection rules as `prp-prd` Phase 6.6.1) and build the inventory directly. If still nothing found, no-op.
+
+### 5.6.2 Refine the section list against the codebase
+
+For each mockup file:
+
+1. Re-read the mockup file in full (don't trust an inherited summary — visual sections drift between PRD writing and plan writing).
+2. Walk the DOM (or, for image mockups, walk the manually-transcribed section list from the PRD).
+3. For each section, capture:
+   - **Mockup ref**: file:line range where the section lives in the mockup HTML (so the implementer can re-read it)
+   - **Section name**: stable label matching what the PRD inventory used
+   - **Visible elements**: the table headers / button labels / form fields / list items that a reviewer would tick off
+   - **Per-screen styles used**: any class only used inside this mockup (vs the project's centralized stylesheet)
+4. Cross-reference against Phase 2 (codebase exploration) findings:
+   - Which sections already have a centralized component the plan can reuse? (e.g. `PageHeader`, `DateRangeSelect`, `DataTable`)
+   - Which sections need a new component? (e.g. custom-dates panel chrome, hour-chart bar visualization)
+   - Which sections are screen-unique and belong in a section-specific CSS file?
+
+### 5.6.3 Author the section assignment
+
+For each section, the plan author records:
+
+| Section | Mockup Ref | Target Component / File | Fidelity | Acceptance Signal |
+|---|---|---|---|---|
+| Sidebar | `index.html:194-248` | `apps/web/components/shell/sidebar.tsx` (existing, extend with `children?`) | VERBATIM | App sidebar shows `parent-active` row + `<div class="submenu">` with the 7 sub-items |
+| Page header (title + export) | `index.html:254-257` | `apps/web/components/layout/page-header.tsx` (reuse) | VERBATIM | Breadcrumb format matches; Export button right-aligned |
+| Filter bar (Dates + Custom panel + View) | `index.html:259-300` | NEW `apps/web/components/product-mix/summary-filter-bar.tsx`; PORT `.cdp-*` styles from `index.html:118-188` into `apps/web/app/styles/product-mix.css` | VERBATIM | "Custom" preset opens the cdp- chrome panel with date inputs + ✕ clear button |
+| Ledger lineage strip | `index.html:303-305` (markup), `index.html:478-503` (JS render) | `apps/web/components/product-mix/ledger-strip.tsx` (reuse, extend with check-circle icon) | VERBATIM | Renders `N × SALES_DAILY — EV-X → EV-Y · N×POS_SEGMENT · ✓ N of M I34 reconciled · View Reconciliation ↗` |
+| Wide data-grid (17 cols, col-group header) | `index.html:307-341` | INLINE in `apps/web/app/(authenticated)/sites/[siteId]/product-mix/page.tsx` — render `.data-grid` markup directly | VERBATIM | Column-group row + 17 col headers + totals row at top of tbody + day rows newest-first |
+| Day-cell (single-line `.day-cell-name`) | `index.html:451-452` | Inside Summary page render | VERBATIM | Single-line "Tue 19 May", NOT two-line |
+
+**Acceptable `Fidelity` values:**
+
+| Value | Meaning |
+|---|---|
+| **VERBATIM** | Mockup is canonical; the rendered DOM must match section-by-section (class names from mockup, layout from mockup, content rendered from API data) |
+| **ADAPTED** | Mockup provides shape; minor adjustments allowed (e.g. swap `<select>` populated dropdown for `<input type="date">` because the data source is different) — the **specific deviation must be noted in the row** |
+| **DEFERRED** | Section is intentionally skipped in this plan — **the reason must be recorded** (schema constraint, separate phase owns it, future PRD, etc.) and the deferral must be reflected in the plan's "NOT Building" section |
+| **TODO:** | Unset placeholder. **Blocks plan output unless `--skip-mockup-check`** |
+
+A bare assignment ("see component X") is not acceptable. Each row must give the implementer enough to recognise the section in the mockup file AND know what acceptance signal closes it.
+
+### 5.6.4 Block on unassigned sections
+
+Scan the Mockup Fidelity Checklist. If any "Target Component / File" cell contains `TODO:` AND `SKIP_MOCKUP_CHECK=false`:
+
+1. Print the offending rows to the user
+2. Print the abort message below
+3. STOP — do not write the plan
+
+```
+STOP: Mockup-fidelity gate failed.
+
+The plan declares {N} mockup sections with no target component/file assignment:
+
+  - {section} ({mockup-ref})   — TODO:
+
+A plan that omits the section-by-section mockup assignment leaves the implementer to invent what to render. The recurring failure mode is missing filter bars, totals rows, slideover sections, and column subgroups that are clearly in the mockup but never coded — every passing e2e suite gives a false-positive sense of "done" because the tests only assert data-testid selectors on the pieces that DID get built.
+
+Options:
+  1. Assign each section a target component/file (reuse existing or NEW)
+  2. Mark intentionally-skipped sections as DEFERRED with a reason, and reflect them in the plan's "NOT Building" section
+  3. Re-run with --skip-mockup-check (logged in plan output, requires PR-review attention)
+
+To override:
+  /prp-plan --skip-mockup-check {original arguments}
+```
+
+If `SKIP_MOCKUP_CHECK=true`, do not block — but tag each `TODO:` row with `⚠ SKIPPED` in the rendered plan and add a banner at the top of the "Mockup Fidelity Checklist" section.
+
+### 5.6.5 Visual-parity gate (carried into implementation)
+
+The plan must include the following in its Validation Loop / Acceptance Criteria:
+
+- **Visual Parity Check**: Before declaring any phase complete, the implementer brings up the dev stack, opens each rendered route at `http://localhost:{port}/{route}` AND opens the corresponding mockup HTML in a separate browser tab/window, and walks the Mockup Fidelity Checklist row-by-row. Each section ships or has a documented deferral. **e2e tests passing is not a substitute for this check — they assert data-testid selectors, not entire UI sections.**
+- **Implementation Report visual-parity table**: The implementation report (per `prp-implement`) must include a "Visual Parity" section that mirrors the Mockup Fidelity Checklist with a "Ships in PR / Deferred / Deviation Noted" column for each row.
+
+These two items get added to the plan's Validation Loop and Acceptance Criteria sections in Phase 6.
+
+**PHASE_5.6_CHECKPOINT:**
+- [ ] Mockup Inventory inherited from PRD (or no-op confirmed for non-UI plans)
+- [ ] Each mockup re-read and section list refined
+- [ ] Each section assigned a Target Component / File + Fidelity + Acceptance Signal
+- [ ] No `TODO:` remains in any cell (or `--skip-mockup-check` was passed)
+- [ ] DEFERRED rows propagated into the plan's "NOT Building" section
+- [ ] Visual-parity check + report table baked into Validation Loop + Acceptance Criteria
+
+---
+
 ## Phase 6: GENERATE - Implementation Plan File
 
 ### 6.0 Numbering and Filename
@@ -802,6 +909,34 @@ _If `--skip-schema-check` was passed, the gate did not block unverified rows. PR
 
 ---
 
+## Mockup Fidelity Checklist
+
+<!--
+  Generated by Phase 5.6 mockup-fidelity gate. Lists every visible section
+  of every mockup the PRD references, with the React component / file that
+  will render it, the fidelity contract, and the acceptance signal that
+  closes the row.
+
+  Omit this section only when the PRD has no Mockup Inventory (non-UI
+  features). If `--skip-mockup-check` was used, rows with `TODO:` are
+  tagged `⚠ SKIPPED` and a banner appears below.
+
+  Reference: visual analogue of ADR-0001's schema-dependency gate.
+  Mirrors `prp-prd` Phase 6.6 Mockup Inventory.
+-->
+
+### `{path/to/first-mockup.html}` — Fidelity: VERBATIM / ADAPTED / EXPLORATORY
+
+| # | Section | Mockup Ref | Target Component / File | Fidelity | Acceptance Signal |
+|---|---|---|---|---|---|
+| 1 | {Section name from PRD inventory} | `{mockup-file:line-range}` | `{path/to/component.tsx}` (REUSE / NEW / EXTEND) | VERBATIM / ADAPTED / DEFERRED | {What a reviewer ticks off — e.g. "Renders {N} cols with class X; clicking row Y triggers Z"} |
+
+_Repeat one table per mockup file. For image mockups, list manually-transcribed sections (the structural inventory deferred in the PRD)._
+
+_If `--skip-mockup-check` was passed, the gate did not block unassigned rows. PR reviewers must verify each `⚠ SKIPPED` row manually before merge._
+
+---
+
 ## Files to Change
 
 | File                             | Action | Justification                            |
@@ -988,7 +1123,26 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
 **EXPECT**: All e2e tests or validation scripts pass (exit 0). Manual journeys listed in report but non-blocking.
 
-### Level 6: MANUAL_VALIDATION
+### Level 6: VISUAL_PARITY (if Mockup Fidelity Checklist is present)
+
+**Skip this level when** the plan has no `## Mockup Fidelity Checklist` section (non-UI plans).
+
+Otherwise: run AFTER Levels 1-5 pass. Required before claiming any UI-bearing task complete.
+
+1. Bring up the stack per "How to Execute" (Start Services → Seed Data → Verify Ready).
+2. Open each rendered route in a browser tab at `http://localhost:{port}/{route}`.
+3. Open the corresponding mockup HTML file from the Mockup Fidelity Checklist in a separate tab/window.
+4. For each row in the Mockup Fidelity Checklist, walk the section side-by-side. Each row should be:
+   - **Ships** — DOM matches the mockup at the declared Fidelity (VERBATIM = pixel-level; ADAPTED = the noted deviation only)
+   - **Deferred** — the row was declared DEFERRED at plan time; confirm it's NOT rendered (no unintended ghost UI)
+   - **Deviation Noted** — DOM differs from mockup beyond the declared Fidelity; the implementation report must record the deviation and the reason
+5. Tear down per "How to Execute".
+
+**EXPECT**: Every Ships row matches; every Deferred row carries the documented reason; every Deviation Noted row has a written rationale in the implementation report.
+
+**WHY THIS LEVEL EXISTS**: Levels 1-5 prove the code is correct (types compile, units pass, e2e selectors resolve). They do not prove the rendered UI matches the canonical visual contract. The recurring failure mode is "e2e green, filter bar missing" — Level 6 is the gate that catches it before PR review.
+
+### Level 7: MANUAL_VALIDATION
 
 {Step-by-step manual testing specific to this feature}
 
@@ -1004,6 +1158,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 - [ ] UX matches "After State" diagram
 - [ ] User journeys created/updated for new user-facing flows
 - [ ] E2E tests or validation scripts defined for automated journeys
+- [ ] Visual parity walked section-by-section against every mockup file (if Mockup Fidelity Checklist is present); each row marked Ships / Deferred / Deviation Noted in the implementation report
 
 ---
 
@@ -1016,6 +1171,7 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 - [ ] Level 3: Full test suite + build succeeds
 - [ ] Level 4: Database validation passes (if applicable)
 - [ ] Level 5: User journey / e2e validation passes (if applicable)
+- [ ] Level 6: Visual parity walked against every mockup (if Mockup Fidelity Checklist present)
 - [ ] User journey files created/updated in `.claude/user-journeys/`
 - [ ] All acceptance criteria met
 

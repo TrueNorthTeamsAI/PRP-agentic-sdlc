@@ -103,6 +103,12 @@ Each question set builds on previous answers. Grounding phases validate assumpti
 
 This flag controls the schema-fitness gate in Phase 6.5. When set, unresolved schema references downgrade from blocking → warning, and the PRD output records that the gate was skipped. Use sparingly; the override is logged for PR-review attention. See ADR-0001 for the rationale.
 
+**Check if `$ARGUMENTS` contains `--skip-mockup-check`:**
+
+If `--skip-mockup-check` is present, extract the flag and strip it from the remaining arguments. Set `SKIP_MOCKUP_CHECK=true`. Otherwise, `SKIP_MOCKUP_CHECK=false`.
+
+This flag controls the mockup-inventory gate in Phase 6.6. When set, missing mockup files or undeclared fidelity intent downgrade from blocking → warning, and the PRD output records that the gate was skipped. The override is logged for PR-review attention.
+
 The remaining text after stripping all flags is the feature description.
 
 ---
@@ -419,6 +425,156 @@ If `SKIP_SCHEMA_CHECK=true`, do not block — but mark each unresolved reference
 
 ---
 
+## Phase 6.6: GATE - Mockup Inventory
+
+**Purpose**: When the PRD's input materials reference visual mockups (HTML, screenshots, design files), surface a complete inventory of those mockups and their visible sections **before** the PRD is written. Carrying the inventory forward into the plan (Phase 5.6 of `prp-plan`) and into implementation gives every downstream agent a checkable list of "what must visually ship" instead of leaving it implicit.
+
+**Why this gate exists**: The recurring failure mode is "mockup provided → agent reads it → agent builds something that functionally works → agent declares done → reviewer finds entire sections (filter bars, totals rows, slideover content shapes) are missing because the agent's e2e tests never asserted them". A mockup inventory captured at PRD time, refined in the plan, and verified in implementation reporting closes that loop. Reference: this is the visual analogue of ADR-0001's schema-fitness gate.
+
+### 6.6.1 Detect mockup sources
+
+Read the project's `CLAUDE.md` and look for a `## Mockup Sources` section. Expected format:
+
+```markdown
+## Mockup Sources
+
+- HTML: client-intake/mockups/**/*.html
+- Screenshots: design/mockups/**/*.{png,jpg,svg}
+- Figma: see `docs/figma-links.md`
+```
+
+**If `## Mockup Sources` is present**, use the listed globs verbatim.
+
+**If absent**, scan these default locations (use any that match at least one file):
+
+| Folder pattern | What to look for |
+|---|---|
+| `client-intake/mockups/**` | HTML, PNG, JPG, SVG |
+| `mockups/**`, `mockup/**` | HTML, PNG, JPG, SVG |
+| `design/mockups/**`, `docs/mockups/**` | HTML, PNG, JPG, SVG |
+| `.context/mockups/**`, `.design/**` | HTML, PNG, JPG, SVG |
+
+Also scan the input brief + any user answers + the referenced Feature Brief markdown (if one was supplied) for explicit mockup references:
+
+| Pattern | Example | Notes |
+|---|---|---|
+| Markdown link to image/HTML | `[mockup](client-intake/mockups/FB-001/index.html)` | Direct file reference |
+| Prose path | `"see day-product.html"`, `"the mockup at design/screen-3.html"` | Resolve relative to the brief or project root |
+| Folder reference | `"mockups under client-intake/mockups/FB-001-product-mix/"` | Glob the folder, include every visual file |
+
+Store the resolved list as `MOCKUP_FILES` (with absolute paths).
+
+**No-op condition**: If `MOCKUP_FILES` is empty AND the input contains no language suggesting a visual deliverable ("screen", "page", "UI", "layout", "mockup", "design"), the gate is a no-op. Skip to Phase 7 and omit the "Mockup Inventory" section from the PRD output.
+
+**No-mockups-but-UI-mentioned**: If `MOCKUP_FILES` is empty but the input clearly describes a UI deliverable (matches one of the keywords above), do not block — but render the "Mockup Inventory" section in Phase 7 with a single explanatory row:
+
+```
+| — | No mockup supplied | The PRD describes UI but no mockup is attached. Plan-time agents will infer layout from the brief; implementation should document the chosen layout in the report. |
+```
+
+### 6.6.2 Inventory each mockup
+
+For each file in `MOCKUP_FILES`:
+
+| Mockup type | What to extract |
+|---|---|
+| `.html` | Top-level `<body>` direct children, plus one level deep into any `<main>`, `<section>`, `<aside>`, or `<div>` that wraps a coherent UI surface (sidebar, header, filter bar, content area, footer, slideover). Note class names where they signal a design-system pattern (`.sidebar`, `.filter-bar`, `.data-grid`, etc.). |
+| `.png`, `.jpg`, `.svg` | Cannot read structurally. Record the file path + filename + any caption from the brief that references it. Mark "structural inventory deferred to manual inspection — plan-time agent must transcribe sections from the image." |
+| Figma / external link | Same as image — record the link and flag for manual transcription. |
+
+For HTML mockups, aim for **6–15 top-level sections per file**. Don't try to inventory every `<div>` — only the elements that a reviewer would call out as a discrete UI surface. Use the file's existing class names verbatim as the section identifier when present.
+
+### 6.6.3 Capture the "Mockup Inventory" section
+
+Build the section content for Phase 7's PRD output:
+
+```markdown
+## Mockup Inventory
+
+<!--
+  Generated by Phase 6.6 mockup-inventory gate. Every mockup file referenced
+  by this PRD is listed with the top-level visible sections it contains.
+  Downstream `prp-plan` Phase 5.6 will turn this into a per-section fidelity
+  checklist mapping each section to a target component / file.
+
+  Reference: visual analogue of ADR-0001's schema-fitness gate.
+-->
+
+### Mockup Files
+
+| File | Type | Purpose |
+|---|---|---|
+| `client-intake/mockups/FB-001-product-mix/index.html` | HTML | Summary day-list screen |
+| `client-intake/mockups/FB-001-product-mix/day-product.html` | HTML | By Product (per-MIN) screen + MIN drill slideover |
+| `design/screenshots/checkout-mobile.png` | Image | Mobile checkout — structural inventory deferred to manual inspection |
+
+### Section Inventory — `{mockup-file-relative-path}`
+
+| # | Section | Class / Selector | Purpose |
+|---|---|---|---|
+| 1 | Sidebar | `.sidebar` | App-shell navigation (sidebar-top + app-selector + menu-items + site-selector) |
+| 2 | Page header | `.page-header-container` | Title row with breadcrumb + export button |
+| 3 | Filter bar | `.filters-bar` | Date preset + custom dates panel + view dropdown |
+| 4 | Ledger lineage strip | `.ledger-strip` | Dynamic event-id badges + recon status |
+| 5 | Data grid wrapper | `.table-scroll > .data-grid` | Wide table with column-group header row + 17 columns + totals row + day rows |
+
+_(repeat one Section Inventory block per file in `MOCKUP_FILES`)_
+
+### Fidelity Intent
+
+Mark each mockup with the intended fidelity contract:
+
+- **CANONICAL** — the mockup is the visual contract; every section must ship verbatim unless explicitly deferred with reason
+- **REFERENCE** — the mockup illustrates functionality; layout adaptation is acceptable, content sections must still ship
+- **EXPLORATORY** — the mockup is one of several candidates; downstream design decisions are still open
+
+(Default to CANONICAL unless the brief explicitly says otherwise. The Decisions Log section of the PRD should record any deviation from CANONICAL with the reason.)
+
+_Gate skipped: `--skip-mockup-check` flag was passed. PR reviewers should verify each mockup section manually._
+```
+
+The trailing italicised line appears only if `SKIP_MOCKUP_CHECK=true`.
+
+### 6.6.4 Block on inventory failures
+
+Block in any of these cases (unless `SKIP_MOCKUP_CHECK=true`):
+
+1. **HTML mockup unreadable** — could not parse the file or extract any sections. Most common cause: file referenced in brief but not present at the resolved path.
+2. **Fidelity intent missing** — the PRD draft (or the brief, or the user's Phase 1-6 answers) gives no signal whether the mockup is CANONICAL, REFERENCE, or EXPLORATORY. The author must declare.
+3. **Image / Figma mockup without manual transcription marker** — the inventory row for an image must explicitly carry "structural inventory deferred to manual inspection — plan-time agent must transcribe sections" so downstream agents know to do that work; if absent, block and prompt.
+
+Print the failures and the abort message below:
+
+```
+STOP: Mockup-inventory gate failed.
+
+The PRD references {N} mockup(s) but the inventory could not be completed:
+
+  - {mockup-path}   — {reason: file not found | could not parse | fidelity intent undeclared | image needs manual transcription marker}
+
+This is the visual analogue of the schema-fitness gate. A PRD that omits the mockup inventory leaves the implementer to infer "what must visually ship" from the e2e test list, which only asserts data-testid identifiers — not entire UI sections. The recurring failure mode is missing filter bars, totals rows, slideover sections, and column subgroups that are clearly in the mockup but never coded.
+
+Options:
+  1. Fix the mockup path so the file resolves
+  2. Declare fidelity intent (CANONICAL / REFERENCE / EXPLORATORY) for each mockup
+  3. Add the manual-transcription marker for image / Figma mockups
+  4. Re-run with --skip-mockup-check (logged in PRD output, requires PR-review attention)
+
+To override:
+  /prp-prd --skip-mockup-check {original arguments}
+```
+
+If `SKIP_MOCKUP_CHECK=true`, do not block — but tag the offending rows visibly and add a banner at the top of the "Mockup Inventory" section noting the gate was overridden.
+
+**PHASE_6.6_CHECKPOINT:**
+- [ ] Mockup sources detected from CLAUDE.md / fallback patterns / brief references
+- [ ] Each mockup file inventoried (HTML parsed; images marked for manual transcription)
+- [ ] Fidelity intent declared per mockup
+- [ ] "Mockup Inventory" section captured for inclusion in PRD output
+- [ ] No-op confirmed if the PRD describes no UI and references no mockup
+
+---
+
 ## Phase 7: GENERATE - Write PRD
 
 ### 7.0 Numbering and Filename
@@ -515,6 +671,42 @@ We'll know we're right when {measurable outcome}.
 | Reference | Status | Schema Source | Semantic Assumption |
 |-----------|--------|---------------|---------------------|
 | {table.column} | RESOLVED / UNRESOLVED / AMBIGUOUS | {file:line or "—"} | {What the PRD assumes this column represents in this context} |
+
+---
+
+## Mockup Inventory
+
+<!--
+  Generated by Phase 6.6 mockup-inventory gate. Every mockup file referenced
+  by this PRD is listed with its top-level visible sections. Downstream
+  `prp-plan` Phase 5.6 turns these into a per-section fidelity checklist
+  mapping each section to a target component/file. Implementation reports
+  must surface a visual-parity table confirming each section ships or
+  documenting deferral.
+
+  Omit this section only when both:
+    1. No mockup files were detected, AND
+    2. The PRD does not describe a UI deliverable.
+
+  If `--skip-mockup-check` was used, the gate ran but did not block;
+  see trailing italic note. Reference: visual analogue of ADR-0001.
+-->
+
+### Mockup Files
+
+| File | Type | Fidelity | Purpose |
+|---|---|---|---|
+| `{path/to/mockup.html}` | HTML | CANONICAL / REFERENCE / EXPLORATORY | {Which screen/flow it shows} |
+| `{path/to/screenshot.png}` | Image | {fidelity} | {What it depicts — structural inventory deferred to manual inspection} |
+
+### Section Inventory — `{first-mockup-file}`
+
+| # | Section | Class / Selector | Purpose |
+|---|---|---|---|
+| 1 | {e.g. Sidebar} | `{.sidebar}` | {What lives in this region of the screen} |
+| 2 | {e.g. Page header} | `{.page-header-container}` | {Title + actions} |
+
+_(Repeat one Section Inventory table per HTML mockup. For image / Figma mockups, render a single row carrying the manual-transcription marker.)_
 
 ---
 
