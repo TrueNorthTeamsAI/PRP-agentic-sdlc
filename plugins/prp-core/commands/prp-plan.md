@@ -686,22 +686,29 @@ These two items get added to the plan's Validation Loop and Acceptance Criteria 
 
 ### 6.0 Numbering and Filename
 
-1. **Determine the prefix** from the parent PRD's filename (if input was a PRD file):
-   - If PRD filename starts with `V` (e.g., `V001-PRD003-auth.prd.md`): prefix is `V001-PRD003`
-   - If PRD filename starts with `PRD` (e.g., `PRD004-search.prd.md`): prefix is `PRD004`
-   - If PRD filename has no number prefix (legacy): use `PRD000` as prefix (backward compatibility)
-   - If input was free-form text (no PRD): use `PRD000` as prefix
+Plan numbering is **per-PRD** (not global): each PRD's plans are numbered `P01`, `P02`, ... independently. No shared counter file is involved — the next number comes from scanning the plan folder for siblings of the current PRD.
 
-2. **Assign plan number**:
-   1. Read `PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
-   2. Increment the `plan` counter by 1.
-   3. Write updated counters back to `PRPs/.counters.json` (use Write tool).
-   4. Zero-pad the new number to 3 digits (e.g., `5` → `005`).
-   5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
+1. **Determine the prefix** from the parent PRD's filename (if input was a PRD file). Strip the trailing `-{slug}.prd.md` and use what remains:
+   - Date+initials, vision-linked (e.g., `V20260630DR-PRD20260701HA-auth.prd.md`): prefix is `V20260630DR-PRD20260701HA`
+   - Date+initials, standalone (e.g., `PRD20260630DR-search.prd.md`): prefix is `PRD20260630DR`
+   - Legacy, vision-linked (e.g., `V001-PRD003-auth.prd.md`): prefix is `V001-PRD003`
+   - Legacy, standalone (e.g., `PRD004-search.prd.md`): prefix is `PRD004`
+   - PRD with no recognizable prefix (very legacy): use `PRD000` as prefix
+   - Input is free-form text (no PRD): use `PRD000` as prefix
 
-3. **Generate filename**: `{prefix}-P{NNN}-{kebab-case-feature-name}.plan.md`
-   - Example: `V001-PRD003-P005-auth-implementation.plan.md`
-   - Example: `PRD004-P006-search-indexing.plan.md`
+2. **Assign plan number** (per-PRD scan, no counter file):
+   1. Detect prefix style:
+      - **New-style** (`PRD\d{8}[A-Z]{2}[a-z]?` or `V\d{8}[A-Z]{2}[a-z]?-PRD\d{8}[A-Z]{2}[a-z]?`) → use 2-digit padding (`P01`, `P02`, ...).
+      - **Legacy-style** (`PRD\d{3}` or `V\d{3}-PRD\d{3}`) → use 3-digit padding (`P001`, `P002`, ...) to stay consistent with sibling plans.
+   2. Scan `PRPs/plans/` and `PRPs/plans/completed/` for files matching `{prefix}-P*-*.plan.md`.
+   3. From each match, extract the `P` number (parse digits after `-P`, before the next `-`).
+   4. New plan number = `max(found numbers) + 1`, or `1` if no matches found.
+   5. Zero-pad per the detected style (2 digits for new, 3 for legacy).
+
+3. **Generate filename**: `{prefix}-P{NN-or-NNN}-{kebab-case-feature-name}.plan.md`
+   - Example (new-style): `PRD20260630DR-P01-search-indexing.plan.md`
+   - Example (new-style, vision-linked): `V20260630DR-PRD20260701HA-P03-auth-implementation.plan.md`
+   - Example (legacy preserved): `PRD004-P006-search-indexing.plan.md`
 
 **OUTPUT_PATH**: `PRPs/plans/{numbered-filename}`
 
@@ -1211,7 +1218,7 @@ Otherwise: run AFTER Levels 1-5 pass. Required before claiming any UI-bearing ta
 - **`none`**: Skip all git operations.
 - **`main-only`**: Commit on current branch:
   ```bash
-  git add PRPs/plans/{numbered-filename} PRPs/.counters.json {prd-file-path if updated}
+  git add PRPs/plans/{numbered-filename} {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 - **`branch-per-prd`**: Verify on the PRD branch. If not, check it out. Then commit:
@@ -1219,7 +1226,7 @@ Otherwise: run AFTER Levels 1-5 pass. Required before claiming any UI-bearing ta
   # If vision-linked: feat/{vision-id}/{prd-id}-{prd-kebab-name}
   # If standalone:    feat/{prd-id}-{prd-kebab-name}
   git checkout feat/{...}  # if not already on it
-  git add PRPs/plans/{numbered-filename} PRPs/.counters.json {prd-file-path if updated}
+  git add PRPs/plans/{numbered-filename} {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 - **`branch-per-phase`**: Create a phase branch from the PRD branch (or base branch if no PRD branch) using hierarchical naming, and commit:
@@ -1227,7 +1234,7 @@ Otherwise: run AFTER Levels 1-5 pass. Required before claiming any UI-bearing ta
   # If vision-linked: feat/{vision-id}/{prd-id}/{plan-id}-{phase-kebab}
   # If standalone:    feat/{prd-id}/{plan-id}-{phase-kebab}
   git checkout -b feat/{...}
-  git add PRPs/plans/{numbered-filename} PRPs/.counters.json {prd-file-path if updated}
+  git add PRPs/plans/{numbered-filename} {prd-file-path if updated}
   git commit -m "docs: add implementation plan {plan-id} for {feature-name}"
   ```
 

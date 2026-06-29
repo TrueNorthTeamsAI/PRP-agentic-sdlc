@@ -246,24 +246,49 @@ Ask these questions:
 
 ## Phase 8: GENERATE - Write Vision Document
 
-### 8.1 Counter Management
+### 8.1 Compute Vision ID
 
-1. Use the **Read** tool to read `PRPs/.counters.json`. If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
-2. Increment the `vision` counter by 1.
-3. Use the **Write** tool to write the updated JSON back to `PRPs/.counters.json`.
-4. Zero-pad the new number to 3 digits for the filename (e.g., `1` → `001`).
-5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
+PRP-Core uses **date+initials** identifiers for visions and PRDs (no shared counter). The ID encodes the creation date (UTC, `YYYYMMDD`) and the author's 2-character uppercase initials; same-day collisions get a lowercase suffix (`b`, `c`, ...).
+
+#### 8.1.a Ensure User Initials (`.initials.json`)
+
+1. **Read** `PRPs/.initials.json`. Expected shape: `{"initials": "XX"}` where `XX` is exactly 2 uppercase ASCII letters (`A`–`Z`). If valid, capture as `USER_INITIALS` and skip to 8.1.b.
+2. **If missing or invalid**, run the first-run flow:
+   1. Run `git config user.name`. Derive a suggestion: first letter of each whitespace-separated word, uppercase, max 2 chars. Fallback `XX` if unknown.
+   2. Ask: *"Initials needed. This project uses author initials to namespace visions/PRDs. What 2-letter uppercase initials should this clone use? (Suggested: `{suggested}`)"*
+   3. Validate `^[A-Z]{2}$`. Re-prompt if invalid.
+   4. **Write** `PRPs/.initials.json` with `{"initials": "{response}"}`.
+   5. **Ensure `.gitignore` covers `PRPs/.initials.json`** at the repo root. Read `.gitignore` (if absent, treat as empty). If no matching line exists, append:
+      ```
+      # PRP-Core: per-user initials (do not commit)
+      PRPs/.initials.json
+      ```
+   6. Print: `→ Saved initials '{response}' to PRPs/.initials.json (gitignored).`
+   7. Capture as `USER_INITIALS`.
+3. On parse error of an existing `.initials.json`, warn the user; do not overwrite.
+
+#### 8.1.b Compute Vision ID
+
+1. `TODAY` = today's UTC date in `YYYYMMDD` (e.g., `20260630`).
+2. Base ID: `V{TODAY}{USER_INITIALS}` (e.g., `V20260630DR`).
+3. **Collision check** — scan `PRPs/visions/` and `PRPs/visions/completed/` for filenames starting with the base ID (followed by `-` or `.`):
+   - No match → final ID is `{base-id}`.
+   - Otherwise try suffixes `b`, `c`, ..., `z`; pick the first unused.
+   - If all 25 are taken, STOP and ask the user.
+4. Capture as `VISION_ID`.
 
 ### 8.2 Generate Vision Document
 
 1. Create directory: `mkdir -p PRPs/visions`
-2. Generate filename: `V{NNN}-{kebab-case-name}.vision.md` (e.g., `V001-user-onboarding.vision.md`)
+2. Generate filename: `{VISION_ID}-{kebab-case-name}.vision.md` (e.g., `V20260630DR-user-onboarding.vision.md`)
 3. Fill in the vision template (from `plugins/prp-core/templates/vision.md`) with discovery answers:
    - Replace all `{placeholder}` fields with actual content from phases 1-7
-   - Fill `id` frontmatter with `V{NNN}` (e.g., `V001`)
+   - Fill `id` frontmatter with `{VISION_ID}` (e.g., `V20260630DR`)
    - Fill `created` frontmatter with current ISO timestamp
    - The PRD Tracker starts empty or with preliminary PRDs if the user mentioned specific features during discovery
-4. Write the file to `PRPs/visions/V{NNN}-{kebab-case-name}.vision.md`
+4. Write the file to `PRPs/visions/{VISION_ID}-{kebab-case-name}.vision.md`
+
+**Backward compatibility:** Existing artifacts with the legacy `V{NNN}` format remain valid and are not renamed.
 
 ### 8.3 Check for Existing Active Vision
 
@@ -278,10 +303,12 @@ Before writing, scan `PRPs/visions/` for any existing `.vision.md` files (exclud
 ## Phase 8.5: GIT - Commit Vision Document
 
 ```bash
-git add PRPs/visions/V{NNN}-{name}.vision.md PRPs/.counters.json
-git commit -m "docs: add vision V{NNN} for {feature-name}"
+git add PRPs/visions/{VISION_ID}-{name}.vision.md
+git commit -m "docs: add vision {VISION_ID} for {feature-name}"
 git push -u origin HEAD
 ```
+
+> `PRPs/.initials.json` is gitignored (set up in step 8.1.a) — do not stage it. Legacy `PRPs/.counters.json` is no longer read or written; if it exists, leave it in place.
 
 **GATE**: No user interaction needed. This is automatic.
 
@@ -294,8 +321,8 @@ After generating, report:
 ```markdown
 ## Vision Created
 
-**File**: `PRPs/visions/V{NNN}-{name}.vision.md`
-**Vision ID**: V{NNN}
+**File**: `PRPs/visions/{VISION_ID}-{name}.vision.md`
+**Vision ID**: {VISION_ID}
 **Title**: {Vision Title}
 
 ### Key Objectives
@@ -326,7 +353,7 @@ After generating, report:
 ### Next Step
 
 Create PRDs under this vision:
-Run: `/prp-prd --vision PRPs/visions/V{NNN}-{name}.vision.md "feature idea"`
+Run: `/prp-prd --vision PRPs/visions/{VISION_ID}-{name}.vision.md "feature idea"`
 ```
 
 ---
@@ -380,6 +407,6 @@ Run: `/prp-prd --vision PRPs/visions/V{NNN}-{name}.vision.md "feature idea"`
 - **SCOPE_BOUNDED**: Clear in-scope and out-of-scope boundaries defined
 - **SUCCESS_MEASURABLE**: Success criteria are specific and measurable
 - **CONTEXT_REGISTERED**: External references added to both vision doc and context-map.md
-- **NUMBERING_CORRECT**: Vision file uses V{NNN} numbering from .counters.json
+- **NUMBERING_CORRECT**: Vision file uses a valid ID — date+initials (`V{YYYYMMDD}{II}[s]`) for new artifacts, or legacy counter (`V{NNN}`) for pre-existing artifacts
 - **ONE_ACTIVE**: Only one active vision per project (warned if existing)
 - **ACTIONABLE**: A PRD creator could use this vision to scope and prioritize their work

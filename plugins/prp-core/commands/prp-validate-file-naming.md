@@ -1,8 +1,8 @@
 ---
-description: Validate and fix PRP artifact numbering (PRDs, plans, reports) and update .counters.json
+description: Validate PRP artifact naming (PRDs, visions, plans, reports) — accepts both date+initials and legacy counter formats
 ---
 
-# Validate PRD Numbers
+# Validate PRP Artifact Naming
 
 ## Phase 0: PRE-FLIGHT — Artifact Path Migration
 
@@ -56,13 +56,30 @@ Then re-run the command.
 
 ## Objective
 
-Scan all PRP artifacts in `PRPs/`, ensure they follow the hierarchical numbering convention (`PRD{NNN}`, `PRD{NNN}-P{NNN}`), fix any filenames that don't comply, update all internal cross-references, and sync `.counters.json`.
+Scan all PRP artifacts in `PRPs/`, verify they match a supported naming format (date+initials **or** legacy counter), fix any filenames that don't comply, and update internal cross-references after any renames. `.counters.json` is no longer used — do not read or write it.
 
 ---
 
 ## Naming Convention Reference
 
-The prp-core numbering convention:
+PRP-Core supports two naming formats. Both are valid; new artifacts use date+initials, but legacy counter-numbered artifacts are not renamed.
+
+### Date+initials (current — used for all new artifacts)
+
+`{YYYYMMDD}{II}[s]` where `YYYYMMDD` is the UTC creation date, `II` is the author's 2-char uppercase initials, and `[s]` is an optional lowercase suffix (`b`, `c`, ...) for same-day same-author collisions.
+
+| Artifact | Pattern | Example |
+|----------|---------|---------|
+| Vision | `V{YYYYMMDD}{II}[s]-{slug}.vision.md` | `V20260630DR-platform-strategy.vision.md` |
+| PRD (standalone) | `PRD{YYYYMMDD}{II}[s]-{slug}.prd.md` | `PRD20260630DR-tank-prp-integration.prd.md` |
+| PRD (vision-linked) | `V{...}-PRD{...}-{slug}.prd.md` | `V20260630DR-PRD20260701HA-auth-middleware.prd.md` |
+| Plan | `{PRD-prefix}-P{NN}-{slug}.plan.md` | `PRD20260630DR-P02-tank-issue-lifecycle.plan.md` |
+| Report | `{plan-name}-report.md` | `PRD20260630DR-P02-tank-issue-lifecycle-report.md` |
+
+- Plan numbers (`P{NN}`) are **per-PRD** — they restart at `P01` for each PRD.
+- Plan numbers are zero-padded to 2 digits.
+
+### Legacy counter format (preserved as-is)
 
 | Artifact | Pattern | Example |
 |----------|---------|---------|
@@ -70,12 +87,21 @@ The prp-core numbering convention:
 | PRD (standalone) | `PRD{NNN}-{slug}.prd.md` | `PRD001-tank-prp-integration.prd.md` |
 | PRD (vision-linked) | `V{NNN}-PRD{NNN}-{slug}.prd.md` | `V001-PRD003-auth-middleware.prd.md` |
 | Plan | `{PRD-prefix}-P{NNN}-{slug}.plan.md` | `PRD001-P002-tank-issue-lifecycle.plan.md` |
-| Report | `{plan-name}-report.md` | `PRD001-P002-tank-issue-lifecycle-report.md` |
 
-- Numbers are zero-padded to 3 digits (e.g., `1` → `001`)
-- Plan numbers are **global** across all PRDs (not per-PRD)
-- Reports mirror the plan filename with `-report` suffix
-- Ralph archive directories use `{date}-{plan-name}/` format
+- Numbers are zero-padded to 3 digits.
+- Plan numbers are **global** across all PRDs (legacy convention).
+- Reports mirror the plan filename with `-report` suffix.
+- Ralph archive directories use `{date}-{plan-name}/` format.
+
+### Combined regex (either format)
+
+| Artifact | Regex |
+|----------|-------|
+| Vision | `^V(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-.+\.vision\.md$` |
+| PRD (standalone) | `^PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-.+\.prd\.md$` |
+| PRD (vision-linked) | `^V(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-.+\.prd\.md$` |
+| Plan (standalone PRD) | `^PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-P\d{2,3}-.+\.plan\.md$` |
+| Plan (vision-linked PRD) | `^V(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-P\d{2,3}-.+\.plan\.md$` |
 
 ---
 
@@ -88,13 +114,14 @@ Read the current state of all PRP artifact directories:
 ```bash
 find PRPs -type f -name "*.md" | sort
 find PRPs/ralph-archives -type d -mindepth 1 -maxdepth 1 | sort
-cat PRPs/.counters.json
 ```
 
 Build an inventory of every artifact, noting:
-- Which already have correct `PRD{NNN}` / `P{NNN}` prefixes
-- Which are missing prefixes (legacy names)
-- Which have wrong prefixes (e.g., `PRD000` placeholder)
+- Which already have a correct prefix (either date+initials or legacy counter — both are valid)
+- Which are missing prefixes (truly unprefixed legacy names)
+- Which have placeholder prefixes (e.g., `PRD000`)
+
+> Do **not** read `PRPs/.counters.json`. The counter system is retired. If the file is present, ignore its contents.
 
 ### Phase 2: Determine Top-Level Document Ordering
 
@@ -187,19 +214,9 @@ For each match:
 
 Also check plan files themselves for cross-references to other plans or PRDs.
 
-### Phase 6: Update .counters.json
+### Phase 6: Retire `.counters.json`
 
-Count the final state and write the updated counters:
-
-```json
-{
-  "vision": <highest V number assigned>,
-  "prd": <highest PRD number assigned>,
-  "plan": <highest P number assigned>
-}
-```
-
-**Important**: Counters track the highest number assigned, not the total count of files. If PRD001 and PRD003 exist but PRD002 was deleted, the counter should be `3`.
+The counter system has been retired. Do **not** write `PRPs/.counters.json`. If it exists on disk, leave it untouched (preserved for historical reference). New PRDs and visions use date+initials IDs; new plan numbers come from a per-PRD scan of `PRPs/plans/`.
 
 ### Phase 7: Report
 
@@ -234,8 +251,7 @@ Print a summary:
 | PRD001-slug.prd.md:42 | old-plan-name.plan.md | new-plan-name.plan.md |
 
 ### Counters
-Before: {"vision": 0, "prd": 0, "plan": 0}
-After:  {"vision": 0, "prd": 3, "plan": 3}
+*Retired — `.counters.json` is no longer maintained. New artifacts use date+initials IDs; new plans use per-PRD numbering scanned from `PRPs/plans/`.*
 ```
 
 ---
@@ -244,8 +260,11 @@ After:  {"vision": 0, "prd": 3, "plan": 3}
 
 - **Never delete files** — only rename/move
 - **Never renumber existing correctly-numbered artifacts** — only add/fix prefixes
-- **Always confirm ordering with the user** — for top-level documents (visions or standalone PRDs), vision-linked PRDs, and plans, infer the best ordering you can, then present it to the user for confirmation before renaming. Do not proceed until the user approves.
+- **Both naming formats are valid** — date+initials (new) and 3-digit counter (legacy). Do not convert legacy artifacts to the new format; only fix truly broken/missing prefixes.
+- **Always confirm ordering with the user** — for top-level documents (visions or standalone PRDs), vision-linked PRDs, and plans whose prefixes are missing or broken, infer the best ordering you can, then present it to the user for confirmation before renaming. Do not proceed until the user approves.
+- **When assigning new prefixes to legacy unnumbered artifacts**: use the legacy 3-digit counter format (`PRD001`, `P001`) — pick the next free number by inspecting other legacy artifacts. Do NOT mint date+initials retroactively (we don't know the original author).
 - **Preserve slugs** — keep the descriptive part of filenames intact (only add/fix the prefix)
-- **Global plan counter** — P numbers are unique across the whole project, not per-PRD
+- **Plan counter scope** — for the new date+initials format, plan numbers are **per-PRD**. For legacy artifacts, plan numbers are global across all PRDs. Preserve whichever scheme is in use.
 - **Superseded plans** get a `-draft` suffix but keep the same P number as the plan that replaced them (since they share the same phase)
 - **Reports directory** is `PRPs/reports/`, NOT `PRPs/plans/reports/`
+- **Never touch `.counters.json`** — it is retired. If present, leave it alone.

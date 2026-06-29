@@ -1,7 +1,7 @@
 ---
 version: 1
 description: Vision document — strategic layer above PRDs for major milestones
-id: "{vision-id}"
+id: "{vision-id}"   # date+initials, e.g. V20260630DR (or legacy V001 for pre-existing artifacts)
 status: active
 created: "{timestamp}"
 ---
