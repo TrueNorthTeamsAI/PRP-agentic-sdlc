@@ -579,15 +579,47 @@ If `SKIP_MOCKUP_CHECK=true`, do not block — but tag the offending rows visibly
 
 ### 7.0 Numbering and Filename
 
-1. Read `PRPs/.counters.json` (use Read tool). If the file does not exist, treat it as `{"vision": 0, "prd": 0, "plan": 0}`.
-2. Increment the `prd` counter by 1.
-3. Write updated counters back to `PRPs/.counters.json` (use Write tool).
-4. Zero-pad the new number to 3 digits (e.g., `3` → `003`).
-5. If the Read tool returns a parse error, warn the user and ask them to check the file manually. Do not overwrite a corrupted file.
+PRP-Core uses **date+initials** identifiers (no shared counter). The PRD ID encodes the creation date (UTC, `YYYYMMDD`) and the author's 2-character uppercase initials. Same-day collisions by the same author get a lowercase suffix (`b`, `c`, ...).
+
+#### 7.0.a Ensure User Initials (`.initials.json`)
+
+1. **Read** `PRPs/.initials.json`. Expected shape: `{"initials": "XX"}` where `XX` is exactly 2 uppercase ASCII letters (`A`–`Z`). If valid, capture as `USER_INITIALS` and skip to 7.0.b.
+2. **If missing or invalid**, run the first-run flow:
+   1. Run `git config user.name` to fetch the user's git name. Derive a suggestion: take the first letter of each whitespace-separated word, uppercase, max 2 chars. Examples: `Daniel Reddington` → `DR`; `John` → `JO`; empty/unknown → `XX`.
+   2. Ask the user (single prompt):
+      > **Initials needed.** This project uses author initials to namespace PRDs and visions so collaborators don't collide on artifact names. What 2-letter uppercase initials should this clone use? *(Suggested: `{suggested}`)*
+   3. Validate the response: must match `^[A-Z]{2}$`. If invalid, explain and re-prompt. Do not proceed until valid.
+   4. **Write** `PRPs/.initials.json` (use Write tool):
+      ```json
+      {
+        "initials": "{response}"
+      }
+      ```
+   5. **Ensure `.gitignore` covers it.** Read `.gitignore` from the repo root (use Read; if absent, treat as empty). If no line matches `PRPs/.initials.json` (literal match or covering pattern such as `**/.initials.json`), append:
+      ```
+      # PRP-Core: per-user initials (do not commit)
+      PRPs/.initials.json
+      ```
+      Save the updated `.gitignore` with the Write tool. Do not `git add` it explicitly — the next normal commit will pick it up.
+   6. Print: `→ Saved initials '{response}' to PRPs/.initials.json (gitignored).`
+   7. Capture as `USER_INITIALS`.
+3. If the Read tool returns a parse error on an existing `.initials.json`, warn the user and ask them to check it manually. Do not overwrite a corrupted file.
+
+#### 7.0.b Compute PRD ID
+
+1. Compute `TODAY` as today's UTC date in `YYYYMMDD` (e.g., `20260630`).
+2. Compute the base ID: `PRD{TODAY}{USER_INITIALS}` (e.g., `PRD20260630DR`).
+3. **Collision check** — scan `PRPs/prds/` and `PRPs/prds/completed/` for filenames whose stem starts with the base ID:
+   - If no file starts with `{base-id}` (followed by `-` or `.`) → final PRD ID is `{base-id}` (no suffix).
+   - Otherwise, try suffixes `b`, `c`, `d`, ..., `z`. The PRD ID is `{base-id}{suffix}` for the first suffix with no matching file.
+   - If all 25 suffixes are taken (improbable), STOP and ask the user.
+4. Capture as `PRD_ID`.
 
 **Generate filename:**
-- If `VISION_PATH` is set (vision-linked): `V{VNN}-PRD{NNN}-{kebab-case-name}.prd.md` (e.g., `V001-PRD003-auth-middleware.prd.md`)
-- If standalone (no vision): `PRD{NNN}-{kebab-case-name}.prd.md` (e.g., `PRD004-search-api.prd.md`)
+- If `VISION_PATH` is set (vision-linked): `{VISION_ID}-{PRD_ID}-{kebab-case-name}.prd.md` (e.g., `V20260630DR-PRD20260630HA-auth-middleware.prd.md`)
+- If standalone (no vision): `{PRD_ID}-{kebab-case-name}.prd.md` (e.g., `PRD20260630DR-search-api.prd.md`)
+
+**Backward compatibility:** Existing artifacts with the legacy `PRD{NNN}` / `V{NNN}` format remain valid and are not renamed. New PRDs always use the date+initials format.
 
 **Output path**: `PRPs/prds/{numbered-filename}`
 
@@ -915,7 +947,7 @@ After generating the PRD file (and CLAUDE.md updates), apply the project's git s
 - **`none`**: No git operations.
 - **`main-only`**: Commit the PRD file on the current branch:
   ```bash
-  git add PRPs/prds/{numbered-name}.prd.md PRPs/.counters.json
+  git add PRPs/prds/{numbered-name}.prd.md
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
 - **`branch-per-prd`**: Create a feature branch using hierarchical naming and commit:
@@ -925,14 +957,16 @@ After generating the PRD file (and CLAUDE.md updates), apply the project's git s
   # If standalone PRD (no vision):
   git checkout -b feat/{PRD-ID}-{prd-kebab-name}
 
-  git add PRPs/prds/{numbered-name}.prd.md PRPs/.counters.json
+  git add PRPs/prds/{numbered-name}.prd.md
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
 - **`branch-per-phase`**: Commit on base branch (phase branches created later by prp-plan):
   ```bash
-  git add PRPs/prds/{numbered-name}.prd.md PRPs/.counters.json
+  git add PRPs/prds/{numbered-name}.prd.md
   git commit -m "docs: add PRD {PRD-ID} for {feature-name}"
   ```
+
+> `PRPs/.initials.json` is gitignored (set up in step 7.0.a) — do not stage it. Legacy `PRPs/.counters.json` is no longer read or written; if it exists in the repo, leave it in place.
 
 If `VISION_PATH` is set, also `git add` the updated vision file (for PRD Tracker changes).
 
@@ -1038,5 +1072,5 @@ This will automatically select the next pending phase and create an implementati
 - **SCHEMA_VERIFIED**: Every existing-table/column reference resolves against the project's schema, with semantic assumption recorded; gate passed cleanly or `--skip-schema-check` is logged. No-op on greenfield. (ADR-0001)
 - **TESTING_STRATEGY_DEFINED**: Unit, e2e, and integration testing approach established
 - **ACTIONABLE**: A skeptic could understand why this is worth building
-- **NUMBERED**: PRD filename uses counter-based numbering from `.counters.json`
+- **NUMBERED**: PRD filename uses a valid ID — date+initials (`PRD{YYYYMMDD}{II}[s]`) for new artifacts, or legacy counter (`PRD{NNN}`) for pre-existing artifacts
 - **VISION_LINKED**: If `--vision` provided, PRD includes Vision Reference section and vision's PRD Tracker is updated

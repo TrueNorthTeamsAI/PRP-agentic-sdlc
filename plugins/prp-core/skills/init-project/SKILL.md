@@ -289,6 +289,9 @@ build/
 .env.*.local
 .mcp.json
 
+# PRP-Core: per-user initials (do not commit)
+PRPs/.initials.json
+
 # IDE
 .vscode/settings.json
 .idea/
@@ -328,6 +331,9 @@ build/
 .env.local
 .mcp.json
 
+# PRP-Core: per-user initials (do not commit)
+PRPs/.initials.json
+
 # IDE
 .vscode/settings.json
 .idea/
@@ -365,6 +371,9 @@ target/
 .env
 .mcp.json
 
+# PRP-Core: per-user initials (do not commit)
+PRPs/.initials.json
+
 # Tooling
 .ijfw/
 
@@ -391,6 +400,9 @@ build/
 .env
 .mcp.json
 
+# PRP-Core: per-user initials (do not commit)
+PRPs/.initials.json
+
 # Tooling
 .ijfw/
 
@@ -412,6 +424,9 @@ target/
 .env
 .mcp.json
 
+# PRP-Core: per-user initials (do not commit)
+PRPs/.initials.json
+
 # Tooling
 .ijfw/
 
@@ -426,6 +441,9 @@ Thumbs.db
 .env
 .env.local
 .mcp.json
+
+# PRP-Core: per-user initials (do not commit)
+PRPs/.initials.json
 
 # IDE
 .vscode/settings.json

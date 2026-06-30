@@ -91,15 +91,17 @@ List all `.vision.md`, `.prd.md`, and `.plan.md` files across both active and `c
 
 ### 1.5.2 Validate Each Filename
 
-Check every discovered file against these required patterns:
+Check every discovered file against the supported patterns. PRP-Core accepts **two formats** — date+initials (current, used for all new artifacts) and 3-digit counter (legacy, preserved as-is). A file passes if it matches **either** column.
 
-| Artifact | Required Pattern | Regex |
-|----------|-----------------|-------|
-| Vision | `V{NNN}-{slug}.vision.md` | `^V\d{3}-.+\.vision\.md$` |
-| PRD (standalone) | `PRD{NNN}-{slug}.prd.md` | `^PRD\d{3}-.+\.prd\.md$` |
-| PRD (vision-linked) | `V{NNN}-PRD{NNN}-{slug}.prd.md` | `^V\d{3}-PRD\d{3}-.+\.prd\.md$` |
-| Plan (standalone PRD) | `PRD{NNN}-P{NNN}-{slug}.plan.md` | `^PRD\d{3}-P\d{3}-.+\.plan\.md$` |
-| Plan (vision-linked PRD) | `V{NNN}-PRD{NNN}-P{NNN}-{slug}.plan.md` | `^V\d{3}-PRD\d{3}-P\d{3}-.+\.plan\.md$` |
+| Artifact | Date+initials (new) | Legacy counter | Combined regex |
+|----------|---------------------|----------------|----------------|
+| Vision | `V{YYYYMMDD}{II}[s]-{slug}.vision.md` | `V{NNN}-{slug}.vision.md` | `^V(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-.+\.vision\.md$` |
+| PRD (standalone) | `PRD{YYYYMMDD}{II}[s]-{slug}.prd.md` | `PRD{NNN}-{slug}.prd.md` | `^PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-.+\.prd\.md$` |
+| PRD (vision-linked) | `V{...}-PRD{...}-{slug}.prd.md` | `V{NNN}-PRD{NNN}-{slug}.prd.md` | `^V(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-.+\.prd\.md$` |
+| Plan (standalone PRD) | `PRD{...}-P{NN}-{slug}.plan.md` | `PRD{NNN}-P{NNN}-{slug}.plan.md` | `^PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-P\d{2,3}-.+\.plan\.md$` |
+| Plan (vision-linked PRD) | `V{...}-PRD{...}-P{NN}-{slug}.plan.md` | `V{NNN}-PRD{NNN}-P{NNN}-{slug}.plan.md` | `^V(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-PRD(\d{3}\|\d{8}[A-Z]{2}[a-z]?)-P\d{2,3}-.+\.plan\.md$` |
+
+Where `{II}` is 2 uppercase letters (author initials), `[s]` is an optional lowercase same-day suffix (`b`, `c`, ...), and `{NN}` / `{NNN}` are zero-padded plan numbers (per-PRD for new format, global for legacy).
 
 ### 1.5.3 If Any Files Fail Validation
 
@@ -126,11 +128,9 @@ This command needs consistent hierarchical IDs (e.g., `V001-`, `PRD001-`, `P001-
 Then re-run `/prp-core:prp-whats-next`.
 ```
 
-### 1.5.4 Also Check .counters.json
+### 1.5.4 `.counters.json` is retired
 
-If artifacts exist but `PRPs/.counters.json` does not, include it in the warning:
-
-> `.counters.json` is missing. The validate command will also create this file.
+PRP-Core no longer uses `PRPs/.counters.json`. Do not warn about its absence and do not read its contents. New PRDs and visions get date+initials IDs; new plans are numbered per-PRD by scanning `PRPs/plans/`.
 
 **Only proceed to Phase 2 if ALL artifacts pass validation.**
 
@@ -151,8 +151,6 @@ PRPs/plans/*.plan.md              → Active plans
 PRPs/plans/completed/*.plan.md    → Completed plans
 ```
 
-Also check for `PRPs/.counters.json` to understand numbering context.
-
 **If NO artifacts exist at all**, report:
 
 > No PRP artifacts found in `PRPs/`. Start by creating a vision or PRD:
@@ -168,13 +166,13 @@ And stop here.
 For each discovered artifact, extract key status information:
 
 **Visions** — Parse:
-- Vision ID (from filename, e.g., `V001`)
+- Vision ID (from filename, e.g., `V20260630DR` or legacy `V001`)
 - Title (from `#` heading)
 - Status (from frontmatter `status:` field)
 - PRD Tracker table: each row's `#`, `PRD`, `Description`, `Status`, `Depends`, `PRD File`
 
 **PRDs** — Parse:
-- PRD ID (from filename, e.g., `PRD001` or `V001-PRD001`)
+- PRD ID (from filename, e.g., `PRD20260630DR`, `V20260630DR-PRD20260701HA`, or legacy `PRD001` / `V001-PRD001`)
 - Title (from `#` heading)
 - Whether vision-linked (check for Vision Reference section or `V###` prefix)
 - Implementation Phases table: each row's `#`, `Phase`, `Description`, `Status`, `Depends`, `PRP Plan`
@@ -301,13 +299,13 @@ After the status summary, output the recommendation:
 **{Action description}** — {Brief explanation of why this is next}
 
 {If executing a plan:}
-> Phase {N} of PRD{NNN} is ready for implementation. The plan has already been created.
+> Phase {N} of {PRD-ID} is ready for implementation. The plan has already been created.
 
 {If creating a plan:}
-> Phase {N} of PRD{NNN} has all dependencies met and needs a plan before implementation.
+> Phase {N} of {PRD-ID} has all dependencies met and needs a plan before implementation.
 
 {If creating a PRD:}
-> Vision V{NNN} has PRD #{N} ready to be defined.
+> Vision {VISION-ID} has PRD #{N} ready to be defined.
 
 ### Run This
 
