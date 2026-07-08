@@ -1,0 +1,63 @@
+NOTICE
+======
+
+This repository is a derivative work. It combines third-party open-source
+software with original additions authored by TrueNorthTeams. Ownership of the
+components is set out below. This file records attribution and ownership; it
+does not, and cannot, change the terms on which any component is licensed.
+
+
+-------------------------------------------------------------------------------
+1. Underlying framework  —  third-party open source (MIT)
+-------------------------------------------------------------------------------
+
+The PRP (Product Requirement Prompt) framework, together with its core
+commands, subagents, templates and methodology, is the original work of:
+
+    Rasmus Widing  —  PRPs-agentic-eng
+    https://github.com/Wirasm/PRPs-agentic-eng
+    Copyright (c) 2025 Rasmus Widing
+    Licensed under the MIT License (see the LICENSE file).
+
+This material is free and open source and is used here under the MIT License.
+Those terms are irrevocable: nothing in this repository restricts any person's
+right to obtain and use the underlying framework under MIT, and nothing here
+claims ownership of it. Any further material later incorporated into this
+repository from that upstream project, or from other third-party open-source
+projects, likewise remains owned by its respective authors and governed by its
+own licence terms.
+
+
+-------------------------------------------------------------------------------
+2. TrueNorthTeams additions  —  proprietary
+-------------------------------------------------------------------------------
+
+Except for the third-party material described in Section 1, all modifications,
+additions, extensions, configurations, tooling and documentation authored by or
+on behalf of TrueNorthTeams in this repository — whenever created, including
+components added after the date of this file — are:
+
+    Copyright (c) 2026 TrueNorthTeams. All rights reserved, except as licensed
+    under separate written agreement.
+
+This ownership covers the TrueNorthTeams layer built on top of the MIT-licensed
+framework. By way of example and not limitation, it includes the plugin
+packaging and versioning; the strategic, planning and validation gates and
+commands; the multi-agent orchestration tooling; the context and git-strategy
+systems; and the associated conventions and documentation. It is not limited to
+any fixed list of features and extends to later additions of the same
+character.
+
+The TrueNorthTeams copyright applies only to these additions, not to the
+underlying framework in Section 1. These additions are proprietary and are
+licensed to clients only under separate written agreement; they are not offered
+under the MIT License. Because the additions build on the MIT-licensed
+framework, the combined work is distributed with the MIT notice and terms in
+Section 1 preserved for the underlying framework, as that licence requires. The
+MIT License continues to apply to the Section 1 material only; it does not
+extend to the TrueNorthTeams additions.
+
+
+-------------------------------------------------------------------------------
+
+For enquiries regarding the TrueNorthTeams additions:  [ https://truenorthteams.ai ]
