@@ -512,7 +512,7 @@ Enumerate every existing table/column the plan touches by combining four sources
 1. **Phase 2 (codebase exploration)** — schema files, repository code, ORM identifiers surfaced by `codebase-explorer` and `codebase-analyst`
 2. **Phase 5 (architecture)** — integration points and data-flow traces
 3. **Files to Change list** (Phase 6 draft) — any file marked `UPDATE` against a schema-source path
-4. **Source PRD's `## Schema References` section** (if input was a PRD file) — propagate forward so the plan author confirms each reference
+4. **Source PRD's `## Data` → `### Schema changes` table** (if input was a PRD file) — propagate forward so the plan author confirms each reference
 
 Include reads and writes both. Include the dependency even if this plan does NOT modify the schema — the point is to flag every column the plan depends on for correctness.
 
@@ -572,7 +572,7 @@ If `SKIP_SCHEMA_CHECK=true`, do not block — but tag each `TODO:` row with `⚠
 - [ ] Each dependency has a Semantic Assumption stated explicitly
 - [ ] Each dependency has a Verified by citation (test, schema comment, ADR, or manual citation)
 - [ ] No `TODO:` remains in Verified by (or `--skip-schema-check` was passed)
-- [ ] PRD's `## Schema References` rows are carried forward into this table (if input was a PRD)
+- [ ] PRD's Data → Schema changes rows are carried forward into this table (if input was a PRD)
 
 ---
 
@@ -582,16 +582,16 @@ If `SKIP_SCHEMA_CHECK=true`, do not block — but tag each `TODO:` row with `⚠
 
 **Why this gate exists**: The recurring failure mode is "mockup provided → agent reads it → agent builds something that functionally works → e2e tests pass on data-testid selectors → agent declares done → reviewer finds entire sections (filter bars, totals rows, slideover content shapes, column subgroups, group-header separators) are missing because the plan never enumerated them". Capturing the section-by-section assignment in the plan is the structural fix that closes that loop. **This is the visual analogue of Phase 5.5's schema-dependency gate.**
 
-**Reference**: Inherits from the PRD's Phase 6.6 Mockup Inventory. If the input PRD has no Mockup Inventory section, treat this gate as a no-op (skip and omit the section from the plan template).
+**Reference**: Inherits the mockup inventory from the PRD's `## Interface` section (produced by prp-prd's Phase 6.6 gate). If the input PRD's Interface section has no mockup, treat this gate as a no-op (skip and omit the section from the plan template).
 
-### 5.6.1 Inherit the Mockup Inventory
+### 5.6.1 Inherit the mockup inventory (from the PRD's Interface section)
 
-If `SOURCE_PRD` is set, read the PRD's `## Mockup Inventory` section and extract:
+If `SOURCE_PRD` is set, read the mockup inventory from the PRD's `## Interface` section and extract:
 
 - `MOCKUP_FILES`: list of `(file path, type, fidelity)` triples
 - `SECTION_INVENTORY`: per-file list of sections (`# / Section / Class / Purpose` rows)
 
-If the PRD's Mockup Inventory is absent OR explicitly says "no mockups" — this gate is a no-op. Omit the "Mockup Fidelity Checklist" section from the plan template and proceed to Phase 6.
+If the PRD's Interface section has no mockup OR explicitly says "no mockups" — this gate is a no-op. Omit the "Mockup Fidelity Checklist" section from the plan template and proceed to Phase 6.
 
 If `SOURCE_PRD` is unset (free-form input), scan the project's mockup folders (using the same detection rules as `prp-prd` Phase 6.6.1) and build the inventory directly. If still nothing found, no-op.
 
@@ -673,7 +673,7 @@ The plan must include the following in its Validation Loop / Acceptance Criteria
 These two items get added to the plan's Validation Loop and Acceptance Criteria sections in Phase 6.
 
 **PHASE_5.6_CHECKPOINT:**
-- [ ] Mockup Inventory inherited from PRD (or no-op confirmed for non-UI plans)
+- [ ] Mockup inventory inherited from the PRD's Interface section (or no-op confirmed for non-UI plans)
 - [ ] Each mockup re-read and section list refined
 - [ ] Each section assigned a Target Component / File + Fidelity + Acceptance Signal
 - [ ] No `TODO:` remains in any cell (or `--skip-mockup-check` was passed)
@@ -924,12 +924,12 @@ _If `--skip-schema-check` was passed, the gate did not block unverified rows. PR
   will render it, the fidelity contract, and the acceptance signal that
   closes the row.
 
-  Omit this section only when the PRD has no Mockup Inventory (non-UI
-  features). If `--skip-mockup-check` was used, rows with `TODO:` are
+  Omit this section only when the PRD's Interface section has no mockup
+  (non-UI features). If `--skip-mockup-check` was used, rows with `TODO:` are
   tagged `⚠ SKIPPED` and a banner appears below.
 
   Reference: visual analogue of ADR-0001's schema-dependency gate.
-  Mirrors `prp-prd` Phase 6.6 Mockup Inventory.
+  Mirrors prp-prd's Phase 6.6 mockup gate (its output now lives in the PRD's Interface section).
 -->
 
 ### `{path/to/first-mockup.html}` — Fidelity: VERBATIM / ADAPTED / EXPLORATORY

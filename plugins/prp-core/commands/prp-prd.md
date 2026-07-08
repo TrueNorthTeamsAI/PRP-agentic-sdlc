@@ -339,7 +339,7 @@ Read the project's `CLAUDE.md` and look for a `## Schema Sources` section. The e
 
 Store the resolved list of schema files as `SCHEMA_FILES`.
 
-**No-op condition**: If `SCHEMA_FILES` is empty (greenfield project, no schema yet), the gate is a no-op. Skip directly to Phase 7 and omit the "Schema References" section from the PRD output.
+**No-op condition**: If `SCHEMA_FILES` is empty (greenfield project, no schema yet), the gate is a no-op. Skip directly to Phase 7 and omit the schema-changes table from the PRD's **Data** section.
 
 ### 6.5.2 Extract candidate references
 
@@ -371,17 +371,18 @@ For each candidate, search `SCHEMA_FILES` for the table and column:
 
 For each **RESOLVED** reference, infer the **semantic assumption** the PRD is making — what the column is being used to represent in this PRD's context. (Example: `event.day_part_id` resolves, but the assumed semantic in a SALES_HR context is "hour-of-day 0–23", which may or may not match the column's existing semantic in a WASTE_* context.)
 
-### 6.5.4 Capture the "Schema References" section
+### 6.5.4 Capture the schema-changes table (Data section)
 
-Build the section content for inclusion in Phase 7's PRD output:
+Build the rows for inclusion under the PRD's `## Data` → `### Schema changes` table in Phase 7. Reused references carry their resolution status in Notes; new tables/columns are flagged 🟢:
 
 ```markdown
-## Schema References
+### Schema changes (🟢 = new)
 
-| Reference | Status | Schema Source | Semantic Assumption |
-|-----------|--------|---------------|---------------------|
-| `event.day_part_id` | RESOLVED | `src/db/schema.ts:42` | Carries hour-of-day 0–23 for SALES_HR rows |
-| `event.utc_begin` | UNRESOLVED | — | Column does not exist in `event` |
+| Reference | Change | Schema Source | Notes / semantic assumption |
+|---|---|---|---|
+| `event.day_part_id` | reuse | `src/db/schema.ts:42` | Carries hour-of-day 0–23 for SALES_HR rows (RESOLVED) |
+| 🟢 **`event.new_col`** | NEW | — | Added by this PRD |
+| `event.utc_begin` | UNRESOLVED | — | Column does not exist in `event` — blocks unless `--skip-schema-check` |
 
 _Gate skipped: `--skip-schema-check` flag was passed. PR reviewers should verify each reference manually._
 ```
@@ -392,7 +393,7 @@ The trailing italicised line appears only if `SKIP_SCHEMA_CHECK=true`.
 
 If any reference is **UNRESOLVED** or **AMBIGUOUS** and `SKIP_SCHEMA_CHECK=false`:
 
-1. Print the "Schema References" section to the user
+1. Print the schema-changes table to the user
 2. Print the abort message below
 3. STOP — do not write the PRD
 
@@ -407,20 +408,20 @@ This is exactly the failure mode ADR-0001 was written to prevent: PRDs commit to
 
 Options:
   1. Update the PRD draft to reference columns that actually exist
-  2. Decide the schema needs to grow to accommodate this PRD, and capture that as an explicit phase (Schema extension) in the Implementation Phases table
+  2. Decide the schema needs to grow to accommodate this PRD, and capture that as an explicit phase (Schema extension) in the Phases table
   3. Re-run with --skip-schema-check (logged in PRD output, requires PR-review attention)
 
 To override:
   /prp-prd --skip-schema-check {original arguments}
 ```
 
-If `SKIP_SCHEMA_CHECK=true`, do not block — but mark each unresolved reference visibly in the "Schema References" section and continue.
+If `SKIP_SCHEMA_CHECK=true`, do not block — but mark each unresolved reference visibly in the schema-changes table and continue.
 
 **PHASE_6.5_CHECKPOINT:**
 - [ ] Schema sources detected from CLAUDE.md, or sane defaults applied
 - [ ] All `table.column`, ORM identifier, `type = 'X'`, and inline-SQL patterns extracted
 - [ ] Each reference resolved (RESOLVED / UNRESOLVED / AMBIGUOUS)
-- [ ] "Schema References" section captured for inclusion in PRD output
+- [ ] Schema-changes table captured for the Data section
 - [ ] Unresolved references either fixed in draft, accepted via `--skip-schema-check`, or escalated to a Schema extension phase
 
 ---
@@ -464,9 +465,9 @@ Also scan the input brief + any user answers + the referenced Feature Brief mark
 
 Store the resolved list as `MOCKUP_FILES` (with absolute paths).
 
-**No-op condition**: If `MOCKUP_FILES` is empty AND the input contains no language suggesting a visual deliverable ("screen", "page", "UI", "layout", "mockup", "design"), the gate is a no-op. Skip to Phase 7 and omit the "Mockup Inventory" section from the PRD output.
+**No-op condition**: If `MOCKUP_FILES` is empty AND the input contains no language suggesting a visual deliverable ("screen", "page", "UI", "layout", "mockup", "design"), the gate is a no-op. Skip to Phase 7 and omit the mockup block from the PRD's **Interface** section.
 
-**No-mockups-but-UI-mentioned**: If `MOCKUP_FILES` is empty but the input clearly describes a UI deliverable (matches one of the keywords above), do not block — but render the "Mockup Inventory" section in Phase 7 with a single explanatory row:
+**No-mockups-but-UI-mentioned**: If `MOCKUP_FILES` is empty but the input clearly describes a UI deliverable (matches one of the keywords above), do not block — but render the Interface section's mockup block in Phase 7 with a single explanatory row:
 
 ```
 | — | No mockup supplied | The PRD describes UI but no mockup is attached. Plan-time agents will infer layout from the brief; implementation should document the chosen layout in the report. |
@@ -484,12 +485,12 @@ For each file in `MOCKUP_FILES`:
 
 For HTML mockups, aim for **6–15 top-level sections per file**. Don't try to inventory every `<div>` — only the elements that a reviewer would call out as a discrete UI surface. Use the file's existing class names verbatim as the section identifier when present.
 
-### 6.6.3 Capture the "Mockup Inventory" section
+### 6.6.3 Capture the mockup inventory (Interface section)
 
-Build the section content for Phase 7's PRD output:
+Build the content for the PRD's `## Interface` section in Phase 7 — the mockup files table, per-file section inventory, and fidelity intent all go under Interface:
 
 ```markdown
-## Mockup Inventory
+<!-- Insert under the PRD's ## Interface section -->
 
 <!--
   Generated by Phase 6.6 mockup-inventory gate. Every mockup file referenced
@@ -528,7 +529,7 @@ Mark each mockup with the intended fidelity contract:
 - **REFERENCE** — the mockup illustrates functionality; layout adaptation is acceptable, content sections must still ship
 - **EXPLORATORY** — the mockup is one of several candidates; downstream design decisions are still open
 
-(Default to CANONICAL unless the brief explicitly says otherwise. The Decisions Log section of the PRD should record any deviation from CANONICAL with the reason.)
+(Default to CANONICAL unless the brief explicitly says otherwise. The Decisions table under References should record any deviation from CANONICAL with the reason.)
 
 _Gate skipped: `--skip-mockup-check` flag was passed. PR reviewers should verify each mockup section manually._
 ```
@@ -564,13 +565,13 @@ To override:
   /prp-prd --skip-mockup-check {original arguments}
 ```
 
-If `SKIP_MOCKUP_CHECK=true`, do not block — but tag the offending rows visibly and add a banner at the top of the "Mockup Inventory" section noting the gate was overridden.
+If `SKIP_MOCKUP_CHECK=true`, do not block — but tag the offending rows visibly and add a banner at the top of the Interface section noting the gate was overridden.
 
 **PHASE_6.6_CHECKPOINT:**
 - [ ] Mockup sources detected from CLAUDE.md / fallback patterns / brief references
 - [ ] Each mockup file inventoried (HTML parsed; images marked for manual transcription)
 - [ ] Fidelity intent declared per mockup
-- [ ] "Mockup Inventory" section captured for inclusion in PRD output
+- [ ] Mockup inventory captured for the Interface section
 - [ ] No-op confirmed if the PRD describes no UI and references no mockup
 
 ---
@@ -627,6 +628,20 @@ Create directory if needed: `mkdir -p PRPs/prds`
 
 ### PRD Template
 
+The PRD is **feature-first** and ordered so a domain reader can stop after the business sections while an engineer reads on. The section order is fixed:
+
+**Feature → (Open Questions, only if any are open) → Scope → Rules & behaviour → Roles & security → Interface → Backend → Data → Implementation Phases → Success Criteria → Testing Strategy → Risk → References.**
+
+Principles the generated PRD must follow:
+
+- **Lead with what the feature *is***, not a problem/solution essay. Keep the problem to one line.
+- **One home per fact.** State a business *rule* once (Rules & behaviour) and describe its *mechanism* once (Backend / Data / Roles & security), referencing the rule rather than restating it. Scope is a commitment checklist — never re-explain rules there.
+- **Roles & security owns access** — RBAC, auth, tenant/isolation carve-outs, RLS/DEFINER. **Data owns pure schema shape** (tables, columns, relationships), not access logic.
+- **Diagrams inline where they add structure** — a `stateDiagram-v2` under Rules for a lifecycle, an `erDiagram` under Data for a schema, a flow diagram under Roles for an access carve-out. No separate summary block — the structure itself is the summary.
+- **Flag every new table / column / function** with 🟢 and bold.
+- **The Implementation Phases table is both a live tracker and a machine contract** — it is parsed by prp-plan / prp-implement / prp-ralph / prp-whats-next, so keep the `Status` (pending | in-progress | complete), `Depends`, and `PRP Plan` columns; `Seq` is added for the human concurrency view. Flag human-gated phases with **[HUMAN REQD]** and always end with the delivery tail: docs + PR → human deploy → confirmation testing.
+- **References absorbs** what used to be separate Evidence and Research Summary sections; its Decisions table absorbs resolved Open Questions.
+
 **If `VISION_PATH` is set**, insert a `## Vision Reference` section immediately after the PRD title:
 
 ```markdown
@@ -648,153 +663,152 @@ Anchors use GitHub-style slugs: lowercase, spaces→hyphens, strip special chars
 ```markdown
 # {Product/Feature Name}
 
-## Problem Statement
+## Feature
 
-{2-3 sentences: Who has what problem, and what's the cost of not solving it?}
+{1-2 sentences: what this feature IS, in plain terms — the capability and who it serves. Lead with the *what*, not a problem/solution essay.}
 
-## Evidence
+> **Problem (one line):** {the single-sentence problem this addresses — a nod to why it exists, not a justification essay.}
 
-- {User quote, data point, or observation that proves this problem exists}
-- {Another piece of evidence}
-- {If none: "Assumption - needs validation through [method]"}
+{Optional one short paragraph — "Why it's non-trivial" — ONLY if there is a genuinely hard or novel part worth surfacing early.}
 
-## Proposed Solution
-
-{One paragraph: What we're building and why this approach over alternatives}
-
-## Key Hypothesis
-
-We believe {capability} will {solve problem} for {users}.
-We'll know we're right when {measurable outcome}.
-
-## What We're NOT Building
-
-- {Out of scope item 1} - {why}
-- {Out of scope item 2} - {why}
-
-## Success Metrics
-
-| Metric | Target | How Measured |
-|--------|--------|--------------|
-| {Primary metric} | {Specific number} | {Method} |
-| {Secondary metric} | {Specific number} | {Method} |
+{One line on who it's for; the role/permission detail lives under Roles & security.}
 
 ## Open Questions
 
-- [ ] {Unresolved question 1}
-- [ ] {Unresolved question 2}
+<!-- Include this section ONLY while questions are genuinely open. On resolution, move each into the
+     Decisions table under References (tag it *OQ*) and delete it here. OMIT the section entirely when nothing is open. -->
 
----
+- [ ] {open question}
 
-## Schema References
+## Scope
 
-<!--
-  Generated by Phase 6.5 schema-fitness gate. Lists every existing
-  table/column the PRD draft references, whether it resolved against
-  the project's schema files, and the semantic assumption being made.
+<!-- Scope = commitment: what's in/out and at what priority. Keep it a terse checklist.
+     The behaviour behind these capabilities belongs in Rules & behaviour — do NOT restate it here. -->
 
-  Omit this section only on greenfield projects (no schema files
-  detected at all). If `--skip-schema-check` was used, the gate ran
-  but did not block; see trailing italic note.
+### Building (MoSCoW)
 
-  Reference: ADR-0001 (verify inherited contracts).
--->
+| Priority | Capability |
+|---|---|
+| Must | {capability — terse} |
+| Should | {capability} |
+| Won't | {explicitly deferred} |
 
-| Reference | Status | Schema Source | Semantic Assumption |
-|-----------|--------|---------------|---------------------|
-| {table.column} | RESOLVED / UNRESOLVED / AMBIGUOUS | {file:line or "—"} | {What the PRD assumes this column represents in this context} |
+### Not building
 
----
+{Explicit non-goals, one line each with the reason.}
 
-## Mockup Inventory
+### MVP
 
-<!--
-  Generated by Phase 6.6 mockup-inventory gate. Every mockup file referenced
-  by this PRD is listed with its top-level visible sections. Downstream
-  `prp-plan` Phase 5.6 turns these into a per-section fidelity checklist
-  mapping each section to a target component/file. Implementation reports
-  must surface a visual-parity table confirming each section ships or
-  documenting deferral.
+{The minimum that proves the hypothesis — usually a phase range.}
 
-  Omit this section only when both:
-    1. No mockup files were detected, AND
-    2. The PRD does not describe a UI deliverable.
+## Rules & behaviour
 
-  If `--skip-mockup-check` was used, the gate ran but did not block;
-  see trailing italic note. Reference: visual analogue of ADR-0001.
--->
+<!-- The domain logic in plain language — signable by a PO without reading the technical sections.
+     State each rule ONCE here; its mechanism is referenced (not restated) under Backend/Data/Roles.
+     Include a Mermaid stateDiagram-v2 ONLY if the feature has a lifecycle / stateful behaviour. -->
 
-### Mockup Files
+{If stateful: include a fenced Mermaid `stateDiagram-v2` of the lifecycle here.}
+
+- **{Rule name}.** {Behaviour in domain terms — no columns, no mechanisms.}
+- **{Rule name}.** {…}
+
+## Roles & security
+
+<!-- Who can see and do what, and how access + isolation are enforced.
+     Scale to the feature: a couple of lines for a simple app; a full carve-out subsection for
+     anything touching multi-tenant isolation, cross-account access, or sensitive data. -->
+
+### Roles (RBAC)
+
+| Role | May |
+|---|---|
+| {role} | {permitted actions} |
+
+### Authentication & authorisation
+
+{Auth mechanism (+ ADR ref if any); how roles/scopes are enforced and where they come from.}
+
+{**Access / isolation carve-out** — include ONLY if the feature crosses a security boundary. Describe the mechanism (e.g. row-level security, DEFINER functions, a Mermaid flow diagram) and state that isolation elsewhere is untouched.}
+
+## Interface
+
+<!-- Informed by the Phase 6.6 mockup-inventory gate. The mockup is the UI source of truth.
+     Omit this whole section if the PRD has no UI deliverable and no mockup. -->
+
+**Mockup: {present — `path/to/mockup` | none}.**
+
+**When a mockup exists**, it is the UI source of truth: implementation PORTS its screens, components, and flows into the app shell using the existing component library and `docs/ux` conventions — it does NOT redesign them. This PRD specifies only the data/contracts/logic behind the screens.
+
+**When no mockup exists**, a mockup is a prerequisite for the Interface phase: either (default) that phase begins by building a design-system mockup (component library, stubbed data) which becomes the source of truth, or — only if the screens are trivial and derivative of existing ones — specify them directly below. Never let implementation invent a UI ad hoc.
+
+{Mockup Files table + per-file Section Inventory, carried from the Phase 6.6 gate:}
 
 | File | Type | Fidelity | Purpose |
 |---|---|---|---|
-| `{path/to/mockup.html}` | HTML | CANONICAL / REFERENCE / EXPLORATORY | {Which screen/flow it shows} |
-| `{path/to/screenshot.png}` | Image | {fidelity} | {What it depicts — structural inventory deferred to manual inspection} |
+| `{path/to/mockup.html}` | HTML | CANONICAL / REFERENCE / EXPLORATORY | {which screen/flow it shows} |
 
-### Section Inventory — `{first-mockup-file}`
+Screens:
+- **{Screen}** (`/route`) — {key elements}; maps to one acceptance case.
 
-| # | Section | Class / Selector | Purpose |
+## Backend
+
+{Module placement; guards — per Roles & security; the endpoint / entry-point surface.}
+
+| Endpoint / entry point | Purpose |
+|---|---|
+| `{METHOD /path}` | {what it does} |
+
+{Key transaction or logic shapes that realise the Rules — reference the rule, describe the mechanism (not the rule again).}
+
+## Data
+
+<!-- Schema SHAPE only — tables, columns, relationships. Access logic (RLS / DEFINER) lives under Roles & security.
+     Include a fenced Mermaid erDiagram for a non-trivial schema. Flag every NEW table/column with 🟢 and bold.
+     The schema-changes table is produced by the Phase 6.5 gate; OMIT it on greenfield projects with no schema files. -->
+
+{Include a fenced Mermaid `erDiagram` here if the schema is non-trivial.}
+
+🟢 **New tables:** {list}.  🟢 **New columns:** {list}.
+
+### Schema changes (🟢 = new)
+
+| Reference | Change | Schema Source | Notes / semantic assumption |
 |---|---|---|---|
-| 1 | {e.g. Sidebar} | `{.sidebar}` | {What lives in this region of the screen} |
-| 2 | {e.g. Page header} | `{.page-header-container}` | {Title + actions} |
+| `{table.column}` | reuse / 🟢 **NEW** / modify | {file:line or "—"} | {what the PRD assumes this represents} |
 
-_(Repeat one Section Inventory table per HTML mockup. For image / Figma mockups, render a single row carrying the manual-transcription marker.)_
+## Implementation Phases
 
----
+**Feasibility: {HIGH/MEDIUM/LOW}** — {one line: what already exists vs the genuinely novel work.}
 
-## Users & Context
+<!--
+  This table is machine-read by prp-plan / prp-implement / prp-ralph / prp-whats-next — keep the
+  column names and the STATUS vocabulary below.
+  Seq:      human concurrency grouping — phases sharing a Seq can run in parallel.
+  Status:   pending | in-progress | complete   (updated as work proceeds; this doc doubles as a tracker)
+  Depends:  phase numbers that must complete first (e.g. "3, 4" or "-")
+  PRP Plan: link to the generated plan file once created (filled by prp-plan)
+  Flag any phase needing a person with [HUMAN REQD]. Always end with the delivery tail:
+  docs+PR, human-approved deploy, confirmation testing.
+-->
 
-**Primary User**
-- **Who**: {Specific description}
-- **Current behavior**: {What they do today}
-- **Trigger**: {What moment triggers the need}
-- **Success state**: {What "done" looks like}
+| Seq | # | Phase | Description | Status | Depends | PRP Plan |
+|---|---|---|---|---|---|---|
+| 1 | 1 | {Discovery / sign-off, if a human gate is needed} **[HUMAN REQD]** | {what it delivers; done when {signal}} | pending | - | - |
+| 2 | 2 | {phase} | {delivers …; done when …} | pending | 1 | - |
+| … | … | {…} | {…} | pending | … | - |
+| {n-2} | {n-2} | Docs + handoff + raise PR | {docs updated; PR raised via `prp-pr`} | pending | {…} | - |
+| {n-1} | {n-1} | Approve PR + deploy to Dev **[HUMAN REQD]** | {PR reviewed + merged; Dev deploy green} | pending | {n-2} | - |
+| {n} | {n} | Confirmation testing on Dev (agent or human) | {smoke + UAT pass on Dev} | pending | {n-1} | - |
 
-**Job to Be Done**
-When {situation}, I want to {motivation}, so I can {outcome}.
+{One line on any cross-sequence dependency.}
 
-**Non-Users**
-{Who this is NOT for and why}
+## Success Criteria
 
----
+**Hypothesis:** We believe {capability} will {solve problem} for {users}. We'll know we're right when every metric below passes.
 
-## Solution Detail
-
-### Core Capabilities (MoSCoW)
-
-| Priority | Capability | Rationale |
-|----------|------------|-----------|
-| Must | {Feature} | {Why essential} |
-| Must | {Feature} | {Why essential} |
-| Should | {Feature} | {Why important but not blocking} |
-| Could | {Feature} | {Nice to have} |
-| Won't | {Feature} | {Explicitly deferred and why} |
-
-### MVP Scope
-
-{What's the minimum to validate the hypothesis}
-
-### User Flow
-
-{Critical path - shortest journey to value}
-
----
-
-## Technical Approach
-
-**Feasibility**: {HIGH/MEDIUM/LOW}
-
-**Architecture Notes**
-- {Key technical decision and why}
-- {Dependency or integration point}
-
-**Technical Risks**
-
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| {Risk} | {H/M/L} | {How to handle} |
-
----
+| Metric | Target | How measured |
+|---|---|---|
+| {metric} | {target} | {test / method} |
 
 ## Testing Strategy
 
@@ -803,73 +817,40 @@ When {situation}, I want to {motivation}, so I can {outcome}.
 - **Location**: {tests/ | src/**/*.test.ts | etc.}
 - **Run**: `{test command}`
 
+### Integration Testing
+- **Approach**: {API / service / DB tests}
+- **Run**: `{command}`
+
 ### E2E Testing
 - **Framework**: {Playwright | Cypress | none | TBD}
 - **Config**: `{path to config file, or "N/A"}`
-- **Test directory**: `{e2e/ | tests/e2e/ | etc.}`
-- **Run command**: `{npx playwright test | npx cypress run | etc.}`
-- **Approach**: {Brief description of e2e testing approach}
+- **Run**: `{npx playwright test | etc.}`
+- **Approach**: {brief description; if no e2e framework, user-journey validation scripts are used instead}
 
-_If no e2e framework: user journey validation scripts (bash) will be used instead._
+_Per-phase scenario detail lives with the phase plans; this section captures the framework + commands (also persisted to CLAUDE.md by Phase 7.5)._
 
-### Integration Testing
-- **Approach**: {API tests, service tests, etc.}
-- **Run**: `{command}`
+## Risk
 
----
+| Risk | Likelihood | Mitigation |
+|---|---|---|
+| {risk} | H / M / L | {mitigation} |
 
-## Implementation Phases
+## References
 
-<!--
-  STATUS: pending | in-progress | complete
-  PARALLEL: phases that can run concurrently (e.g., "with 3" or "-")
-  DEPENDS: phases that must complete first (e.g., "1, 2" or "-")
-  PRP: link to generated plan file once created
--->
+<!-- Skippable by humans; exists so any claim above traces to a primary source and the planner has context pointers.
+     Absorbs what used to be the separate Evidence and Research Summary sections. -->
 
-| # | Phase | Description | Status | Parallel | Depends | PRP Plan |
-|---|-------|-------------|--------|----------|---------|----------|
-| 1 | {Phase name} | {What this phase delivers} | pending | - | - | - |
-| 2 | {Phase name} | {What this phase delivers} | pending | - | 1 | - |
-| 3 | {Phase name} | {What this phase delivers} | pending | with 4 | 2 | - |
-| 4 | {Phase name} | {What this phase delivers} | pending | with 3 | 2 | - |
-| 5 | {Phase name} | {What this phase delivers} | pending | - | 3, 4 | - |
+**Sources**
+- {source doc / spec / mockup / data point — link + what it establishes}
 
-### Phase Details
+**Precedents**
+- {prior PRD or pattern this reuses}
 
-**Phase 1: {Name}**
-- **Goal**: {What we're trying to achieve}
-- **Scope**: {Bounded deliverables}
-- **Success signal**: {How we know it's done}
+**Decisions** (incl. resolved open questions, tagged *OQ*)
 
-**Phase 2: {Name}**
-- **Goal**: {What we're trying to achieve}
-- **Scope**: {Bounded deliverables}
-- **Success signal**: {How we know it's done}
-
-{Continue for each phase...}
-
-### Parallelism Notes
-
-{Explain which phases can run in parallel and why, e.g., "Phases 3 and 4 can run in parallel in separate worktrees as they touch different domains (frontend vs auth)"}
-
----
-
-## Decisions Log
-
-| Decision | Choice | Alternatives | Rationale |
-|----------|--------|--------------|-----------|
-| {Decision} | {Choice} | {Options considered} | {Why this one} |
-
----
-
-## Research Summary
-
-**Market Context**
-{Key findings from market research}
-
-**Technical Context**
-{Key findings from technical exploration}
+| Decision | Choice | Rationale |
+|---|---|---|
+| {decision} | {choice} | {why; tag *OQ* if it resolved an open question} |
 
 ---
 
@@ -986,20 +967,21 @@ After generating, report:
 
 ### Summary
 
+**Feature**: {One line — what it is}
 **Problem**: {One line}
-**Solution**: {One line}
 **Key Metric**: {Primary success metric}
 
 ### Validation Status
 
 | Section | Status |
 |---------|--------|
-| Problem Statement | {Validated/Assumption} |
+| Feature & problem | {Validated/Assumption} |
 | User Research | {Done/Needed} |
 | Technical Feasibility | {Assessed/TBD} |
 | Schema Fitness | {Passed / Skipped (--skip-schema-check) / N/A (greenfield)} |
-| Testing Strategy | {Defined/TBD} |
-| Success Metrics | {Defined/Needs refinement} |
+| Roles & security | {Defined/N/A} |
+| Testing approach | {Defined/TBD} |
+| Success Criteria | {Defined/Needs refinement} |
 
 ### Open Questions ({count})
 
@@ -1011,8 +993,8 @@ After generating, report:
 
 ### Implementation Phases
 
-| # | Phase | Status | Can Parallel |
-|---|-------|--------|--------------|
+| Seq | # | Phase | Status | Depends | PRP Plan |
+|---|---|-------|--------|---------|----------|
 {Table of phases from PRD}
 
 ### To Start Implementation
