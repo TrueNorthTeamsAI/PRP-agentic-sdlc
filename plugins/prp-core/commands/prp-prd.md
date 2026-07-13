@@ -240,6 +240,7 @@ LOCATE:
 5. Testing setup:
    - Unit test framework and patterns (jest, vitest, pytest, etc.)
    - E2E test framework configs (playwright.config.*, cypress.config.*, etc.)
+   - agent-browser CLI availability (`agent-browser --version`) — an agentic browser engine that drives `type: web` journeys directly, with no spec files or config
    - E2E test directories (e2e/, tests/e2e/, cypress/e2e/)
    - Test-related scripts in package.json / pyproject.toml
    - Existing CLAUDE.md testing sections
@@ -822,10 +823,10 @@ Screens:
 - **Run**: `{command}`
 
 ### E2E Testing
-- **Framework**: {Playwright | Cypress | none | TBD}
-- **Config**: `{path to config file, or "N/A"}`
-- **Run**: `{npx playwright test | etc.}`
-- **Approach**: {brief description; if no e2e framework, user-journey validation scripts are used instead}
+- **Framework**: {Playwright | Cypress | agent-browser | none | TBD}
+- **Config**: `{path to config file, or "N/A" — agent-browser has no config file}`
+- **Run**: `{npx playwright test | etc.; for agent-browser: driven by the e2e-browser skill, no run command}`
+- **Approach**: {brief description; `agent-browser` drives `type: web` journeys directly via the e2e-browser skill (no spec files); if no e2e framework, user-journey validation scripts are used instead}
 
 _Per-phase scenario detail lives with the phase plans; this section captures the framework + commands (also persisted to CLAUDE.md by Phase 7.5)._
 
@@ -904,10 +905,10 @@ After generating the PRD, check if the project has a `CLAUDE.md` file. If it doe
 - **Run**: `{command}`
 
 ### E2E Tests
-- **Framework**: {framework}
-- **Config**: `{config path}`
-- **Test directory**: `{directory}`
-- **Run**: `{command}`
+- **Framework**: {framework — Playwright | Cypress | agent-browser | none}
+- **Config**: `{config path; "N/A" for agent-browser}`
+- **Test directory**: `{directory; "N/A" for agent-browser — journeys live in .claude/user-journeys/}`
+- **Run**: `{command; for agent-browser: "(skill: e2e-browser)" — no run command}`
 ```
 
 4. If CLAUDE.md already has testing info, verify it's current and update if stale

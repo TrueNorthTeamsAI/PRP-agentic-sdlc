@@ -355,6 +355,7 @@ After ALL agents return control to you, run end-to-end validation yourself. This
 2. **Does the happy path work?**
    - Walk through the primary user flow
    - Each step produces expected results
+   - Web-journey validation follows the same three-way framework branch as `prp-implement` §4.6: Playwright/Cypress → run the e2e command; **Framework agent-browser → drive each `type: web` journey via the `e2e-browser` skill**; no framework → run the curl Validation Script. (Keep this in sync with prp-implement and prp-ralph.)
 
 3. **Do integrations connect?**
    - Frontend successfully calls backend
@@ -422,7 +423,7 @@ Now read the plan at `$ARGUMENTS[0]` and begin:
 9. **Forward verified contracts to downstream agents** — include in their spawn prompt
 10. Spawn downstream agents with verified contracts + their validation checklist
 11. **Run contract diff before integration** — compare backend's curl commands vs frontend's fetch URLs
-12. When all agents return, run **end-to-end validation yourself** (start both servers, use agent-browser for UI testing)
+12. When all agents return, run **end-to-end validation yourself** (start both servers; for UI testing use the `e2e-browser` skill when the project's e2e Framework is agent-browser)
 13. If validation fails, re-spawn the relevant agent with the specific issue
 14. Confirm the build meets the plan's requirements
 15. **Run completion protocol** (Step 7 below)

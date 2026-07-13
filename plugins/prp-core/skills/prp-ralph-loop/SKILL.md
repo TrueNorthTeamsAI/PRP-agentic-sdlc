@@ -199,7 +199,7 @@ Append to the state file's progress log (see Section 6).
 - Exit code 0
 - No errors in output
 - Warnings are acceptable (but note them)
-- For e2e/journeys: all automated journey validation scripts or e2e tests exit 0. Manual journeys are non-blocking.
+- For e2e/journeys: all automated journey validation scripts, e2e tests, or agent-browser journeys (driven by the `e2e-browser` skill when Framework is agent-browser) exit 0. Manual journeys are non-blocking.
 
 ### Common Validation Failures and Fixes
 
@@ -465,7 +465,7 @@ npm run type-check && npm run lint && npm test && npm run build
 uv run ruff check && uv run mypy . && uv run pytest
 
 # Journey/E2E (if plan has How to Execute + User Journeys)
-# Setup → run e2e or validation scripts → teardown
+# Setup → run e2e / agent-browser journeys (e2e-browser skill) / validation scripts → teardown
 ```
 
 ### Progress Log Template

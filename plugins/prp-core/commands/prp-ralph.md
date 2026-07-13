@@ -248,15 +248,16 @@ bun run build || npm run build
 After the above validations pass, run journey/e2e validation:
 
 1. Run setup from "How to Execute" (Start Services → Seed Data → Verify Ready)
-2. **If e2e framework configured**: Run e2e test command (from CLAUDE.md)
-3. **If no e2e framework**: Extract and run each automated journey's Validation Script
-4. Run teardown from "How to Execute"
+2. **If code e2e framework configured** (Playwright/Cypress): Run e2e test command (from CLAUDE.md)
+3. **If Framework is `agent-browser`**: For each automated `type: web` journey, invoke the `e2e-browser` skill to execute the journey's `## Agent-Browser Validation` section (exit 0 = PASS). The skill STOPS loudly if the agent-browser CLI is missing — never silently downgrade a web journey to Manual.
+4. **If no e2e framework**: Extract and run each automated journey's Validation Script
+5. Run teardown from "How to Execute"
 
 ```bash
 # Example e2e validation
 {start services from How to Execute}
 {verify ready}
-{e2e run command, e.g., npx playwright test}
+{e2e run command, e.g., npx playwright test; or e2e-browser skill for agent-browser journeys}
 {teardown}
 ```
 

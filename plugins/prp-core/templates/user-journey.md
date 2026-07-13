@@ -101,6 +101,43 @@ echo "PASS Step 1: Resource created"
 echo "JOURNEY PASS: {journey-name}"
 ```
 
+## Agent-Browser Validation
+
+<!--
+  OPTIONAL. For `type: web` journeys when the project's e2e Framework is
+  `agent-browser` (from CLAUDE.md `## Testing`). Drives a real browser via the
+  agent-browser CLI instead of curl — use this for UI flows that cannot be
+  reduced to API calls (click a button, assert rendered DOM text, follow JS
+  routing). Executed by the `e2e-browser` skill.
+
+  Exactly ONE validation mechanism applies per journey:
+    - type: api / cli, or no e2e framework  → use the `## Validation Script` (curl) above
+    - type: web + Framework: agent-browser   → use this section
+    - Framework: Playwright / Cypress        → omit both; a spec file is generated instead
+
+  Same contract as the Validation Script: exit 0 = PASS, non-zero = FAIL.
+  Assumes preconditions are met and the app is running (plan's "How to Execute").
+-->
+
+```bash
+#!/bin/bash
+set -euo pipefail
+BASE="${BASE_URL:-http://localhost:3000}"
+fail() { echo "FAIL: $1"; agent-browser close || true; exit 1; }
+
+# Step 1: {description}
+agent-browser open "$BASE/{path}"
+agent-browser snapshot -i                      # returns @refs (e.g. @e1, @e2)
+agent-browser click @e1
+agent-browser wait --text "{expected text}" || fail "Step 1: expected text missing"
+
+# Step 2: {description} — assert rendered state
+agent-browser is visible @e2 || fail "Step 2: element not visible"
+
+agent-browser close
+echo "JOURNEY PASS: {journey-name}"
+```
+
 ## Error Scenarios
 
 <!--

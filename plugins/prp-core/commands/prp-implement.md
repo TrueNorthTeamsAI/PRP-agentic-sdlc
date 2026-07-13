@@ -288,6 +288,8 @@ Common patterns:
 3. Place test files in the e2e directory specified by the project config
 4. Run the e2e test command to verify they compile/parse correctly (tests may fail if services aren't running — that's OK at this stage)
 
+**If Framework is `agent-browser`** (from CLAUDE.md `## Testing`): there are no `.spec.ts` files to generate. Web journeys carry an `## Agent-Browser Validation` section instead — skip generation here, but do NOT skip validation (see §4.6, which drives them via the `e2e-browser` skill).
+
 **If no `## E2E Tests to Write` table:** Skip this step — journey validation scripts handle e2e coverage.
 
 ### 4.3 Build Check
@@ -337,10 +339,17 @@ Run any edge case tests specified in the plan.
 
 2. **Run validation:**
 
-   **If e2e framework configured** (plan has `## E2E Tests to Write`):
+   **If code e2e framework configured** (Playwright/Cypress; plan has `## E2E Tests to Write`):
    ```bash
    {e2e run command from CLAUDE.md, e.g., npx playwright test}
    ```
+
+   **If Framework is `agent-browser`** (from CLAUDE.md `## Testing`):
+   - For each journey listed as **Automated** in the plan's `## User Journeys`:
+     - Read the journey file
+     - Invoke the `e2e-browser` skill to execute the journey's `## Agent-Browser Validation` section
+     - Log PASS/FAIL by exit code
+   - The skill STOPS loudly if the agent-browser CLI is missing — a web journey is never silently downgraded to Manual.
 
    **If no e2e framework** (validation scripts only):
    - For each journey listed as **Automated** in the plan's `## User Journeys`:

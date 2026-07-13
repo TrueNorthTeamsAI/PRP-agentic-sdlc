@@ -397,12 +397,13 @@ Return findings with:
 - Steps must be concrete: exact commands, URLs, UI actions
 - Expected results must be specific: response codes, output text, UI state
 - Include a **Validation Script** (bash, exit 0 = PASS) for projects WITHOUT an e2e test framework
-- For projects WITH an e2e framework, omit the Validation Script — e2e test files will be generated during implementation
+- For projects WITH a code e2e framework (Playwright/Cypress), omit the Validation Script — e2e test files will be generated during implementation
+- For projects with **Framework: `agent-browser`**, a `type: web` journey instead gets an `## Agent-Browser Validation` section (agent-browser command sequence, exit 0 = PASS) — driven by the `e2e-browser` skill. This makes real browser-UI flows Automated/blocking without a code e2e framework.
 
 ### Classify Journeys as Automated or Manual:
 
-- **Automated**: Can be fully exercised by a script or e2e test (API calls, CLI commands, deterministic UI flows)
-- **Manual**: Requires human judgment (visual design review, UX feel, complex multi-device flows) — non-blocking
+- **Automated**: Can be fully exercised by a script or e2e test (API calls, CLI commands, deterministic UI flows). **A `type: web` journey is Automated (blocking) when Framework is `agent-browser`** — authored as an Agent-Browser Validation section — not just when a code framework exists.
+- **Manual**: Requires genuine human judgment (visual design review, UX feel, complex multi-device flows) — non-blocking. Do NOT classify a deterministic web flow as Manual merely because there is no Playwright/Cypress suite; if Framework is agent-browser it is Automated.
 
 **PHASE_4.5_CHECKPOINT:**
 
@@ -779,7 +780,7 @@ So that {benefit}
 |-------------|--------|-------------|
 | `.claude/user-journeys/{name}.md` | NEW / MODIFIED / VERIFY | {what this journey tests} |
 
-**Automated** (e2e tests or validation scripts — blocking):
+**Automated** (e2e tests, agent-browser command sequences, or validation scripts — blocking):
 - `.claude/user-journeys/{name}.md` — {description}
 
 **Manual** (require human testing — non-blocking):
@@ -1056,8 +1057,10 @@ Execute in order. Each task is atomic and independently verifiable.
 ### E2E Tests to Write
 
 <!--
-  Only if project has e2e framework (from CLAUDE.md / PRD Testing Strategy).
-  Otherwise journey Validation Scripts serve as e2e coverage.
+  Only if project has a CODE e2e framework, i.e. Playwright/Cypress (from CLAUDE.md / PRD Testing Strategy).
+  For Framework: agent-browser, no .spec.ts file is written — the journey doc's
+  Agent-Browser Validation section + the e2e-browser skill ARE the coverage.
+  For no e2e framework, journey Validation Scripts serve as e2e coverage.
 -->
 
 | Test File | Journey Source | Test Cases |
@@ -1118,17 +1121,22 @@ Use Supabase MCP to verify:
 
 Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 
-**If e2e framework configured** (from CLAUDE.md `## Testing` section):
+**If code e2e framework configured** (Playwright/Cypress, from CLAUDE.md `## Testing` section):
 ```bash
 {e2e run command from CLAUDE.md, e.g., npx playwright test, npx cypress run}
 ```
+
+**If Framework is `agent-browser`** (from CLAUDE.md `## Testing` section):
+1. Run setup from "How to Execute" (Start Services → Seed Data → Verify Ready)
+2. Invoke the `e2e-browser` skill for each **Automated** `type: web` journey: it executes the journey's `## Agent-Browser Validation` section (exit 0 = PASS). The skill STOPS loudly if the agent-browser CLI is not installed — a web journey is never silently downgraded to Manual.
+3. Run teardown from "How to Execute"
 
 **If no e2e framework** (validation scripts only):
 1. Run setup from "How to Execute" (Start Services → Seed Data → Verify Ready)
 2. For each journey with a Validation Script: extract and execute the script
 3. Run teardown from "How to Execute"
 
-**EXPECT**: All e2e tests or validation scripts pass (exit 0). Manual journeys listed in report but non-blocking.
+**EXPECT**: All e2e tests, agent-browser journeys, or validation scripts pass (exit 0). Manual journeys listed in report but non-blocking.
 
 ### Level 6: VISUAL_PARITY (if Mockup Fidelity Checklist is present)
 
@@ -1137,8 +1145,8 @@ Run after Levels 1-3 pass. Uses "How to Execute" for setup/teardown.
 Otherwise: run AFTER Levels 1-5 pass. Required before claiming any UI-bearing task complete.
 
 1. Bring up the stack per "How to Execute" (Start Services → Seed Data → Verify Ready).
-2. Open each rendered route in a browser tab at `http://localhost:{port}/{route}`.
-3. Open the corresponding mockup HTML file from the Mockup Fidelity Checklist in a separate tab/window.
+2. Open each rendered route in a browser tab at `http://localhost:{port}/{route}`. When Framework is `agent-browser`, invoke the `e2e-browser` skill to capture a `--full` screenshot of each route for the walk. **Screenshots assist the walk — they do not pass it** (see WHY below).
+3. Open the corresponding mockup HTML file from the Mockup Fidelity Checklist in a separate tab/window (or a second agent-browser session).
 4. For each row in the Mockup Fidelity Checklist, walk the section side-by-side. Each row should be:
    - **Ships** — DOM matches the mockup at the declared Fidelity (VERBATIM = pixel-level; ADAPTED = the noted deviation only)
    - **Deferred** — the row was declared DEFERRED at plan time; confirm it's NOT rendered (no unintended ghost UI)
