@@ -42,7 +42,7 @@ This plugin provides a comprehensive workflow for creating, executing, and shipp
 
 | Skill | Description |
 |-------|-------------|
-| `feature-review` | Full feature review, pre- or post-merge: context gathering, diff integrity, local-first functional walkthrough, multi-angle adversarially-verified code review, merge-and-deploy gate, deployed smoke, findings report, triaged GitHub issue. Seven phases; scales to the ask. |
+| `feature-review` | Full feature review, pre- or post-merge. The verdict is bound to three gates only — acceptance criteria hold, click-through works, CANONICAL mockup parity — so a story meeting them is marked complete instead of churning on improvement ideas. Covers context gathering, diff integrity, local-first functional walkthrough, gating-vs-advisory code review, merge-and-deploy gate, deployed smoke, verdict-first findings report, triaged GitHub issue. Seven phases; scales to the ask. |
 | `azure-review` | Board-sync half of the review workflow: maps feature-review verdicts onto the Azure DevOps board (passed → Ready for Test, failed/split → In Development) with evidence comments linking GitHub issues. Runs via Claude in Chrome on the operator's logged-in session. |
 
 `feature-review` reads repo-specific hooks (seed commands, mockup paths, design tokens, UX patterns doc) from the target repo's CLAUDE.md; `azure-review` reads its ADO org/board bindings from the project's CLAUDE.md Issue Tracking section. Chain them: review verdicts → GitHub issues → board moves.
