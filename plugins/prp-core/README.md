@@ -38,14 +38,15 @@ This plugin provides a comprehensive workflow for creating, executing, and shipp
 | `/prp-review` | Comprehensive PR code review |
 | `/prp-review-agents` | Multi-agent PR review (comments, tests, errors, types, code, docs, simplify) |
 
-### Feature Review (skills)
+### Skills
 
 | Skill | Description |
 |-------|-------------|
 | `feature-review` | Full feature review, pre- or post-merge. The verdict is bound to three gates only — acceptance criteria hold, click-through works, CANONICAL mockup parity — so a story meeting them is marked complete instead of churning on improvement ideas. Covers context gathering, diff integrity, local-first functional walkthrough, gating-vs-advisory code review, merge-and-deploy gate, deployed smoke, verdict-first findings report, triaged GitHub issue. Seven phases; scales to the ask. |
 | `azure-review` | Board-sync half of the review workflow: maps feature-review verdicts onto the Azure DevOps board (passed → Ready for Test, failed/split → In Development) with evidence comments linking GitHub issues. Runs via Claude in Chrome on the operator's logged-in session. |
+| `question-check` | Checks drafted questions against the project's docs before any of them reach the user. Launches a separate Sonnet agent that sweeps operator memory, CLAUDE.md files, ADRs, PRDs/plans/reports, integration contracts, and worktree-local uncommitted reports, returning per question whether the answer is already written down and where. Answered questions get dropped and cited; only genuine unknowns are asked. ANSWERED requires two independent finds. |
 
-`feature-review` reads repo-specific hooks (seed commands, mockup paths, design tokens, UX patterns doc) from the target repo's CLAUDE.md; `azure-review` reads its ADO org/board bindings from the project's CLAUDE.md Issue Tracking section. Chain them: review verdicts → GitHub issues → board moves.
+`feature-review` reads repo-specific hooks (seed commands, mockup paths, design tokens, UX patterns doc) from the target repo's CLAUDE.md; `azure-review` reads its ADO org/board bindings from the project's CLAUDE.md Issue Tracking section. Chain them: review verdicts → GitHub issues → board moves. `question-check` is orthogonal to both — it runs before any question in any workflow, and resolves its doc corpus from the workspace CLAUDE.md (or PRP-standard defaults) rather than fixed paths.
 
 ## Agents
 
