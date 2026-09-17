@@ -218,8 +218,15 @@ Based on foundation + research, ask:
 > 4. **Non-Users**: Who is explicitly NOT the target? Who should we ignore?
 >
 > 5. **Constraints**: What limitations exist? (time, budget, technical, regulatory)
+>
+> 6. **UI Devices** *(only if the feature has a UI)*: Which devices / form factors must the interface run on? Common choices: desktop browser, tablet (portrait / landscape), phone (portrait / landscape), kiosk / large-screen, embedded. If you're not sure yet, say "unknown" and it will be captured as an open question.
 
 **GATE**: Wait for user responses before proceeding.
+
+**Capture**: Record the user's device answer as `TARGET_DEVICES`. Accepted shapes:
+- **Explicit list** (e.g., `"desktop, tablet-landscape"`) → use verbatim in the Interface section's **Devices** row.
+- **"unknown" / "TBD" / no answer** → emit an item into the PRD's `## Open Questions` block: `- [ ] Which devices / form factors must the UI support? (desktop / tablet / phone / kiosk / other)`. The Devices row in Interface then reads: `TBD — see Open Questions`.
+- **"n/a" / "no UI"** → skip the Devices row entirely; the Interface section will already be omitted for non-UI PRDs.
 
 ---
 
@@ -577,6 +584,59 @@ If `SKIP_MOCKUP_CHECK=true`, do not block — but tag the offending rows visibly
 
 ---
 
+## Phase 6.7: DRAFT - UAT / Acceptance Walkthrough
+
+**Purpose**: Produce a concrete click-through checklist the developer (locally) and a non-technical stakeholder (on Dev) can run to prove the feature does what the PRD said it would. This is the artifact the client / product side will click through — it MUST read as plain steps, not as engineering shorthand.
+
+**Board-agnostic**: this section is designed to be copy-pasted into whatever ticketing tool the team uses (GitHub Issues, Jira, Azure DevOps, Linear, Trello, ClickUp, a Notion page). Do NOT reference any specific board vendor.
+
+### 6.7.1 Auto-draft the walkthrough
+
+From the accumulated context (Feature, Scope, Rules & behaviour, Interface screens, Success Criteria targets), draft two lists:
+
+**Local walkthrough** — steps a developer runs against the local dev server before pushing. Each row: an action a human would take, and what they should see.
+
+**Dev-deployed walkthrough** — the same shape, targeting the deployed Dev environment (URL comes from the project's `CLAUDE.md` or is left as `{DEV_URL}` if unknown). This is the list that goes to the client / product reviewer.
+
+Each step must:
+- Reference a **user-visible surface** (a page, a button label, a menu item) — not an internal function name, endpoint, or table column.
+- State the **expected observable result** — what appears on screen, what count changes, what row is added, what email arrives.
+- Be **independently runnable** — do not depend on the reader remembering state from a previous step unless the step explicitly sets it up ("From the step-1 screen, click…").
+
+Draft length: aim for **3–8 steps per list**. If the feature genuinely needs more, group them by user journey with a heading.
+
+### 6.7.2 Present the draft and confirm
+
+Show the user the two drafted lists and ask:
+
+> **UAT / Acceptance Walkthrough — draft**
+>
+> **Local:**
+> {rendered draft steps}
+>
+> **Dev-deployed:**
+> {rendered draft steps}
+>
+> Any steps to add, remove, or reword before I lock this in? This is the exact text that will go into the PRD (and that you'll copy into your story ticket for client / product to click through).
+
+**GATE**: Wait for user confirmation or edits. Apply edits and re-confirm if the user made non-trivial changes.
+
+### 6.7.3 Skip conditions
+
+The gate is a no-op (skip cleanly, do not render the UAT section in Phase 7) when:
+- The PRD has no UI **and** no user-observable behaviour change (pure infra, refactors, library upgrades, internal-tooling-only changes).
+- The Implementation Phases table already covers verification exhaustively in a way that would make UAT redundant (rare — err on the side of including UAT).
+
+If skipping, print one line: `→ UAT walkthrough skipped: {reason}.`
+
+**PHASE_6.7_CHECKPOINT:**
+- [ ] Local walkthrough drafted (3–8 steps or grouped by journey)
+- [ ] Dev-deployed walkthrough drafted (same shape, uses `{DEV_URL}` or resolved Dev URL)
+- [ ] Steps reference user-visible surfaces and observable results — no internal jargon
+- [ ] User has confirmed the drafts (or explicit skip reason recorded)
+
+---
+
 ## Phase 7: GENERATE - Write PRD
 
 ### 7.0 Numbering and Filename
@@ -631,7 +691,7 @@ Create directory if needed: `mkdir -p PRPs/prds`
 
 The PRD is **feature-first** and ordered so a domain reader can stop after the business sections while an engineer reads on. The section order is fixed:
 
-**Feature → (Open Questions, only if any are open) → Scope → Rules & behaviour → Roles & security → Interface → Backend → Data → Implementation Phases → Success Criteria → Testing Strategy → Risk → References.**
+**Feature → (Open Questions, only if any are open) → Scope → Rules & behaviour → Roles & security → Interface → Backend → Data → Implementation Phases → Success Criteria → UAT / Acceptance Walkthrough → Testing Strategy → Risk → References.**
 
 Principles the generated PRD must follow:
 
@@ -738,6 +798,8 @@ Anchors use GitHub-style slugs: lowercase, spaces→hyphens, strip special chars
 
 **Mockup: {present — `path/to/mockup` | none}.**
 
+**Devices: {list from `TARGET_DEVICES` — e.g., "desktop browser, tablet-landscape" | "TBD — see Open Questions"}.** Devices are the form factors the UI must run on. If this row reads "TBD", a matching item must appear under `## Open Questions`.
+
 **When a mockup exists**, it is the UI source of truth: implementation PORTS its screens, components, and flows into the app shell using the existing component library and `docs/ux` conventions — it does NOT redesign them. This PRD specifies only the data/contracts/logic behind the screens.
 
 **When no mockup exists**, a mockup is a prerequisite for the Interface phase: either (default) that phase begins by building a design-system mockup (component library, stubbed data) which becomes the source of truth, or — only if the screens are trivial and derivative of existing ones — specify them directly below. Never let implementation invent a UI ad hoc.
@@ -810,6 +872,34 @@ Screens:
 | Metric | Target | How measured |
 |---|---|---|
 | {metric} | {target} | {test / method} |
+
+## UAT / Acceptance Walkthrough
+
+<!-- Copy this whole section into the story ticket on whatever board the team uses
+     (GitHub Issues, Jira, Azure DevOps, Linear, Trello, ClickUp, Notion, etc.) so the
+     client / product reviewer has an unambiguous click-through checklist. Board-agnostic
+     by design — do NOT reference any specific ticketing vendor here.
+
+     Populated by the Phase 6.7 UAT gate. Omit this section entirely on pure-infra /
+     no-user-observable-behaviour PRDs (see Phase 6.7 skip conditions). -->
+
+> **How to use this section:** paste it verbatim into the story ticket. Non-technical reviewers should be able to run every step without asking for clarification.
+
+### Local (developer, pre-push)
+
+| # | Action | Expected result |
+|---|---|---|
+| 1 | {plain-English step referencing a page / button / menu item} | {what the reviewer should see happen on screen} |
+| 2 | {…} | {…} |
+
+### Dev-deployed (client / product reviewer)
+
+**Environment**: {resolved Dev URL, or `{DEV_URL}` if not yet known}
+
+| # | Action | Expected result |
+|---|---|---|
+| 1 | {plain-English step} | {observable outcome} |
+| 2 | {…} | {…} |
 
 ## Testing Strategy
 
@@ -998,6 +1088,13 @@ After generating, report:
 |---|---|-------|--------|---------|----------|
 {Table of phases from PRD}
 
+### UAT — Ready to Copy Into Your Story
+
+The PRD includes a `## UAT / Acceptance Walkthrough` section (Local + Dev-deployed).
+👉 **Copy that entire section into the story ticket on whatever board you use** — that's how the client / product reviewer will know what to click through. The section is board-agnostic (works in GitHub Issues, Jira, Azure DevOps, Linear, Trello, Notion, etc.).
+
+{If the UAT gate was skipped, replace this block with: `_UAT walkthrough was skipped — reason: {reason}._`}
+
 ### To Start Implementation
 
 Run: `/prp-plan PRPs/prds/{numbered-name}.prd.md`
@@ -1039,6 +1136,14 @@ This will automatically select the next pending phase and create an implementati
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
+│  GATE: Mockup inventory — sections + fidelity intent    │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│  DRAFT: UAT walkthrough — local + dev-deployed lists    │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
 │  GENERATE: Write PRD to PRPs/prds/              │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -1053,6 +1158,8 @@ This will automatically select the next pending phase and create an implementati
 - **SCOPE_BOUNDED**: Clear must-haves and explicit out-of-scope
 - **QUESTIONS_ACKNOWLEDGED**: Uncertainties are listed, not hidden
 - **SCHEMA_VERIFIED**: Every existing-table/column reference resolves against the project's schema, with semantic assumption recorded; gate passed cleanly or `--skip-schema-check` is logged. No-op on greenfield. (ADR-0001)
+- **DEVICES_DECLARED**: If the feature has a UI, the Interface section's Devices row is either an explicit list or an item in Open Questions (never omitted or invented)
+- **UAT_DRAFTED**: A copy-pasteable UAT / Acceptance Walkthrough section exists with a Local list and a Dev-deployed list, in plain reviewer-friendly language — or the gate was explicitly skipped with a recorded reason
 - **TESTING_STRATEGY_DEFINED**: Unit, e2e, and integration testing approach established
 - **ACTIONABLE**: A skeptic could understand why this is worth building
 - **NUMBERED**: PRD filename uses a valid ID — date+initials (`PRD{YYYYMMDD}{II}[s]`) for new artifacts, or legacy counter (`PRD{NNN}`) for pre-existing artifacts

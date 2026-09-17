@@ -7,6 +7,8 @@ argument-hint: <path/to/plan.md>
 
 **Plan**: $ARGUMENTS
 
+**Parse flags first**: If `$ARGUMENTS` contains `--accept-open-questions`, set `ACCEPT_OPEN_QUESTIONS=true` and strip the flag; otherwise `ACCEPT_OPEN_QUESTIONS=false`. This flag governs the open-questions gate in Phase 1.5.
+
 ---
 
 ## Your Mission
@@ -135,6 +137,54 @@ Create a plan first: /prp-plan "feature description"
 - [ ] Plan file loaded
 - [ ] Key sections identified
 - [ ] Tasks list extracted
+
+---
+
+## Phase 1.5: GATE - Open Questions in Source PRD
+
+**Purpose**: Implementing against a PRD that still carries unresolved `## Open Questions` means one of two bad outcomes: the implementation quietly picks a wrong branch (and the reviewer catches it late), or the agent asks the human mid-implementation (and the human context-switches). Catch it up front.
+
+**Scope**: Only fires when the plan carries a `Source PRD` reference in its Metadata table. If the plan was generated from a free-form description (no source PRD), skip this phase silently.
+
+### 1.5.1 Locate the PRD
+
+Read the loaded plan's Metadata table for the `Source PRD` field. Resolve the path (relative to the plan file). If the field is missing or the file does not exist, skip this phase.
+
+### 1.5.2 Extract unresolved questions
+
+Read the PRD and locate the `## Open Questions` section (case-insensitive heading match). Count `- [ ]` lines. If the section is absent or the count is zero → gate passes.
+
+### 1.5.3 Block or accept
+
+If `ACCEPT_OPEN_QUESTIONS=true`, do NOT block:
+- Print one line: `→ Open questions gate: {N} question(s) carried forward as accepted assumptions (--accept-open-questions).`
+- Continue implementation. If any implementation decision later depends on one of these questions, log it as an assumption in the phase's implementation report.
+
+If `ACCEPT_OPEN_QUESTIONS=false` (default) and any unresolved questions exist, STOP and print:
+
+```
+STOP: The source PRD has {N} unresolved open question(s).
+
+  Plan: {path/to/plan.md}
+  PRD:  {path/to/prd.md}
+
+  Unresolved:
+  {enumerated list of the `- [ ]` items}
+
+Answer these before implementing so the code doesn't quietly bake in a wrong assumption.
+
+Options:
+  1. Edit the PRD: check each resolved item off (`- [x]`) and move the decision into
+     the References → Decisions table (tag *OQ*). Re-run this command.
+  2. Accept them as assumptions for this implementation pass:
+     re-run with --accept-open-questions
+     (each assumption should be recorded in the phase's implementation report).
+```
+
+**PHASE_1.5_CHECKPOINT:**
+- [ ] Source PRD located (or gate skipped because plan has no `Source PRD` reference)
+- [ ] `## Open Questions` scanned for `- [ ]` items
+- [ ] Gate passed (zero questions), accepted via flag, or STOPped with abort message
 
 ---
 

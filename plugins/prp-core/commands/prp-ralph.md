@@ -76,6 +76,7 @@ Start an autonomous Ralph loop that executes a PRP plan iteratively until all va
 Extract from input:
 - **File path**: Must end in `.plan.md` or `.prd.md`
 - **Max iterations**: `--max-iterations N` (default: 20)
+- **`--accept-open-questions`**: If present, set `ACCEPT_OPEN_QUESTIONS=true` and strip the flag. Otherwise `ACCEPT_OPEN_QUESTIONS=false`. Governs the open-questions gate in Phase 1.5.
 
 ### 1.2 Validate Input Type
 
@@ -119,6 +120,55 @@ If input is a `.prd.md` file:
 - [ ] Input parsed (file path + max iterations)
 - [ ] File exists and is valid type
 - [ ] If PRD: next phase identified
+
+---
+
+## Phase 1.5: GATE - Open Questions in PRD
+
+**Purpose**: Ralph will iterate autonomously — potentially for many cycles — so an unresolved `## Open Questions` block in the source PRD is worse here than in `prp-plan` or `prp-implement`: the loop can burn through iterations building around a wrong assumption before anyone sees the output. Catch it before the first iteration.
+
+### 1.5.1 Locate the PRD
+
+- **Direct `.prd.md` input**: the file is the PRD.
+- **`.plan.md` input**: read the plan's Metadata table for `Source PRD` and resolve the path. If the plan carries no `Source PRD` (generated from free-form input), skip this phase silently.
+
+### 1.5.2 Extract unresolved questions
+
+Read the PRD and locate the `## Open Questions` section (case-insensitive heading match). Count `- [ ]` lines. If the section is absent or the count is zero → gate passes.
+
+### 1.5.3 Block or accept
+
+If `ACCEPT_OPEN_QUESTIONS=true`, do NOT block:
+- Print one line: `→ Open questions gate: {N} question(s) carried forward as accepted assumptions (--accept-open-questions).`
+- Write the accepted-assumptions list into the state file so every iteration sees them.
+- Continue.
+
+If `ACCEPT_OPEN_QUESTIONS=false` (default) and any unresolved questions exist, STOP and print:
+
+```
+STOP: The PRD has {N} unresolved open question(s).
+
+  PRD: {path/to/prd.md}
+  {If plan input:} Plan: {path/to/plan.md}
+
+  Unresolved:
+  {enumerated list of the `- [ ]` items}
+
+Ralph iterates autonomously — an unanswered open question here means the loop may
+run many iterations against a wrong assumption before you see the output.
+
+Options:
+  1. Edit the PRD: check each resolved item off (`- [x]`) and move the decision into
+     the References → Decisions table (tag *OQ*). Re-run this command.
+  2. Accept them as assumptions for this loop:
+     re-run with --accept-open-questions
+     (accepted assumptions will be recorded in the Ralph state file).
+```
+
+**PHASE_1.5_CHECKPOINT:**
+- [ ] PRD located (or gate skipped because plan input has no `Source PRD`)
+- [ ] `## Open Questions` scanned for `- [ ]` items
+- [ ] Gate passed (zero questions), accepted via flag, or STOPped with abort message
 
 ---
 

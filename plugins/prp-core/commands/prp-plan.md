@@ -96,6 +96,7 @@ Then re-run the command.
 
 - **`--skip-schema-check`**: If present, set `SKIP_SCHEMA_CHECK=true` and strip the flag from `$ARGUMENTS`. Otherwise, `SKIP_SCHEMA_CHECK=false`. This flag controls the schema-dependency gate in Phase 5.5 — when set, the plan output is not blocked even if "Verified by" cells contain `TODO:`, but the plan is annotated to flag PR-review attention. See ADR-0001.
 - **`--skip-mockup-check`**: If present, set `SKIP_MOCKUP_CHECK=true` and strip the flag from `$ARGUMENTS`. Otherwise, `SKIP_MOCKUP_CHECK=false`. This flag controls the mockup-fidelity gate in Phase 5.6 — when set, sections marked `TODO:` in the Mockup Fidelity Checklist do not block plan output, but each unset row is tagged `⚠ SKIPPED` for PR-review attention.
+- **`--accept-open-questions`**: If present, set `ACCEPT_OPEN_QUESTIONS=true` and strip the flag. Otherwise, `ACCEPT_OPEN_QUESTIONS=false`. This flag controls the open-questions gate in Phase 0.4 — when set, the plan proceeds even if the source PRD has unresolved `- [ ]` items under `## Open Questions`, treating each as an accepted assumption; each carried-forward question is echoed into the plan's Risks section for visibility.
 
 **Determine input type:**
 
@@ -149,6 +150,58 @@ Then re-run the command.
 - [ ] Input type determined
 - [ ] If PRD: next phase selected and dependencies verified
 - [ ] Feature description ready for Phase 1
+
+---
+
+## Phase 0.4: GATE - Open Questions in Source PRD
+
+**Purpose**: Before spending time on plan research, catch the case where the PRD still carries unresolved `## Open Questions`. Planning around a "TBD" produces a plan that either bakes in a wrong assumption silently or forks into speculative branches — both waste iteration.
+
+**Scope**: This gate fires ONLY when Phase 0 resolved the input to a PRD file (either directly, or via a plan whose input we were given). For free-form / conversation input, skip this phase — there is no PRD to inspect.
+
+### 0.4.1 Locate the PRD
+
+- If the input to this command was a `.prd.md` file, that is the PRD.
+- If the input was a plan file, read its Metadata table for the `Source PRD` field and resolve that path. If the plan does not carry a `Source PRD` (e.g., the plan was generated from a free-form description), skip this gate silently.
+- If neither applies, skip.
+
+### 0.4.2 Extract unresolved questions
+
+Read the PRD and locate the `## Open Questions` section (heading match; case-insensitive). If the section is absent → gate passes (no questions).
+
+Within the section, count `- [ ]` lines (unchecked list items). Ignore `- [x]` (resolved, retained for history) and non-list prose. Collect each unchecked item's text into a list, preserving the order in the file.
+
+If the count is zero → gate passes.
+
+### 0.4.3 Block or accept
+
+If `ACCEPT_OPEN_QUESTIONS=true`, do NOT block:
+- Print one line: `→ Open questions gate: {N} question(s) carried forward as accepted assumptions (--accept-open-questions).`
+- Add a bullet under the plan's Risks section for each carried-forward question, prefixed `Assumed open question:`, so the plan reader sees them.
+- Continue.
+
+If `ACCEPT_OPEN_QUESTIONS=false` (default) and any unresolved questions exist, STOP and print:
+
+```
+STOP: The source PRD has {N} unresolved open question(s).
+
+  PRD: {path/to/prd.md}
+
+  Unresolved:
+  {enumerated list of the `- [ ]` items, one per line}
+
+Answer these before planning so the plan doesn't quietly bake in a wrong assumption.
+
+Options:
+  1. Edit the PRD: check each resolved item off (`- [x]`) and move the decision into the References → Decisions table (tag *OQ*).
+  2. Accept them as assumptions for this planning pass: re-run with --accept-open-questions
+     (each question will be echoed into the plan's Risks section for visibility).
+```
+
+**PHASE_0.4_CHECKPOINT:**
+- [ ] Source PRD located (or gate skipped because there is none)
+- [ ] `## Open Questions` scanned for `- [ ]` items
+- [ ] Gate passed (zero questions), accepted via flag, or STOPped with the abort message above
 
 ---
 
