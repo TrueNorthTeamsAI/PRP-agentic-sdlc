@@ -44,6 +44,7 @@ Iterating is fine. Iterating on the wrong thing is what this section prevents.
 
 1. Read the PRD (`PRPs/prds/`), its plan reports (`PRPs/reports/`), and the PR body (`gh pr view N --json title,body,files`). Extract: acceptance criteria (the AC matrix in the terminal-phase report), declared deviations/deferrals, and the oracle figures (seeded counts/totals the PRD cites).
 2. **Cross-repo scope check**: grep the sibling repos' history and files (`git log --all -i --grep`, `git grep -il`) for the PRD/feature-brief id. Report whether the work is self-contained.
+   - **OutSystems scope?** If any AC involves OutSystems parity, OS publishers/timers, OS entities, or a file OS also generates, run the `outsystems-review` skill alongside this one: read the real OS logic (Service Studio MCP, read-only) and dependencies (Service Center), and prove parity on OS output — never on docs or the developer's claim.
 3. Check post-merge CI: `gh run list --branch <default>` — did the deploy that shipped this feature go green?
 
 Deliverable: a review brief — what's being reviewed, the passing criteria (AC matrix), what's declared out of scope (do NOT flag declared deviations as bugs).
